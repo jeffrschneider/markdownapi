@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown API (MAPI) - Human-Readable API Specifications</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mustard: #D4A03E;
+            --burnt-orange: #C85D3E;
+            --teal: #2A7B7B;
+            --olive: #5E7153;
+            --cream: #FAF7F2;
+            --warm-white: #FFFEF9;
+            --charcoal: #2D2D2D;
+            --light-charcoal: #4A4A4A;
+            --sand: #E8E0D5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--cream);
+            color: var(--charcoal);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        header {
+            padding: 1.5rem 0;
+        }
+
+        header .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--teal);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo-mark {
+            width: 32px;
+            height: 32px;
+            background: var(--burnt-orange);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .main-nav {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .main-nav a {
+            text-decoration: none;
+            color: var(--light-charcoal);
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .main-nav a:hover {
+            color: var(--teal);
+        }
+
+        .main-nav a.nav-cta {
+            background: var(--teal);
+            color: white;
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+        }
+
+        .main-nav a.nav-cta:hover {
+            background: #237070;
+            color: white;
+        }
+
+        .main-nav a.nav-cta-alt {
+            background: var(--burnt-orange);
+        }
+
+        .main-nav a.nav-cta-alt:hover {
+            background: #A84D32;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 4rem 0 5rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 3.5rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 1.5rem;
+            line-height: 1.15;
+        }
+
+        .hero h1 span {
+            color: var(--burnt-orange);
+        }
+
+        .hero .tagline {
+            display: inline-block;
+            background: var(--sand);
+            color: var(--teal);
+            padding: 0.5rem 1.25rem;
+            border-radius: 100px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 2rem;
+        }
+
+        .hero .hero-description {
+            font-size: 1.15rem;
+            color: var(--light-charcoal);
+            max-width: 700px;
+            margin: 2.5rem auto 0;
+            line-height: 1.75;
+        }
+
+        /* Primary CTA */
+        .primary-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--burnt-orange);
+            color: white;
+            padding: 1.25rem 2.5rem;
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 1.15rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 20px rgba(200, 93, 62, 0.3);
+        }
+
+        .primary-cta:hover {
+            background: #B54E32;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(200, 93, 62, 0.4);
+        }
+
+        .primary-cta svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            padding: 3rem 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--sand);
+        }
+
+        .divider-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--mustard);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .divider-icon svg {
+            width: 20px;
+            height: 20px;
+            color: white;
+        }
+
+        /* Why Section */
+        .why-section {
+            padding: 3rem 0;
+        }
+
+        .why-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .why-card {
+            background: var(--warm-white);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid var(--sand);
+        }
+
+        .why-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .why-card-icon svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        .why-card:nth-child(1) .why-card-icon { background: var(--teal); }
+        .why-card:nth-child(2) .why-card-icon { background: var(--mustard); }
+        .why-card:nth-child(3) .why-card-icon { background: var(--olive); }
+
+        .why-card h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--charcoal);
+        }
+
+        .why-card p {
+            font-size: 0.95rem;
+            color: var(--light-charcoal);
+            line-height: 1.65;
+        }
+
+        /* Progressive Disclosure Section */
+        .disclosure-section {
+            padding: 4rem 0;
+        }
+
+        .disclosure-box {
+            background: linear-gradient(135deg, var(--teal) 0%, #1E5F5F 100%);
+            border-radius: 24px;
+            padding: 3.5rem;
+            color: white;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .disclosure-content h2 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+        }
+
+        .disclosure-content p {
+            font-size: 1.05rem;
+            line-height: 1.75;
+            opacity: 0.92;
+        }
+
+        .disclosure-visual {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .disclosure-step {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .disclosure-step-num {
+            width: 28px;
+            height: 28px;
+            background: var(--mustard);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--charcoal);
+            flex-shrink: 0;
+        }
+
+        .disclosure-step span {
+            font-size: 0.95rem;
+        }
+
+        /* Why MAPI Section */
+        .why-mapi-section {
+            padding: 4rem 0 5rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .section-header h2 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 2.25rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 1rem;
+        }
+
+        .section-header p {
+            font-size: 1.1rem;
+            color: var(--light-charcoal);
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .comparison-card {
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .comparison-card.problem {
+            background: #FDF6F3;
+            border: 1px solid #E8D5CF;
+        }
+
+        .comparison-card.solution {
+            background: #F3FAF7;
+            border: 1px solid #C5E0D4;
+        }
+
+        .comparison-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            color: var(--charcoal);
+        }
+
+        .comparison-card.problem h3 {
+            color: var(--burnt-orange);
+        }
+
+        .comparison-card.solution h3 {
+            color: var(--teal);
+        }
+
+        .comparison-card ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .comparison-card li {
+            font-size: 0.95rem;
+            color: var(--light-charcoal);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            padding-left: 0;
+        }
+
+        .comparison-card li:last-child {
+            margin-bottom: 0;
+        }
+
+        .comparison-card li strong {
+            color: var(--charcoal);
+            display: block;
+            margin-bottom: 0.15rem;
+        }
+
+        .llm-callout {
+            background: linear-gradient(135deg, #7B6BA7 0%, #5D4E8C 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-start;
+            color: white;
+        }
+
+        .llm-callout-icon {
+            width: 52px;
+            height: 52px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .llm-callout-icon svg {
+            width: 26px;
+            height: 26px;
+            color: white;
+        }
+
+        .llm-callout h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .llm-callout p {
+            font-size: 1rem;
+            line-height: 1.65;
+            opacity: 0.95;
+            margin: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-nav {
+                gap: 1rem;
+            }
+
+            .why-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .disclosure-box {
+                grid-template-columns: 1fr;
+            }
+
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .llm-callout {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .llm-callout-icon {
+                margin: 0 auto;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .main-nav a:not(.nav-cta) {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2.25rem;
+            }
+
+            .hero .subtitle {
+                font-size: 1.1rem;
+            }
+
+            .primary-cta {
+                padding: 1rem 2rem;
+                font-size: 1rem;
+            }
+
+            .disclosure-box {
+                padding: 2rem;
+            }
+        }
+
+        /* Footer */
+        .site-footer {
+            background: var(--charcoal);
+            color: var(--cream);
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .site-footer a {
+            color: var(--mustard);
+            text-decoration: none;
+        }
+
+        .site-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-divider {
+            color: rgba(255,255,255,0.3);
+            margin: 0 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="/" class="logo">
+                <div class="logo-mark">M</div>
+                MarkdownAPI
+            </a>
+            <nav class="main-nav">
+                <a href="getting-started.html">Getting Started</a>
+                <a href="#why-llms">Why MAPI</a>
+                <a href="specs/mapi-specification-v0.92.html" class="nav-cta">Human Spec</a>
+                <a href="llm-spec.html" class="nav-cta nav-cta-alt">LLM Spec</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <div class="tagline">API specifications for the AI era</div>
+                <h1>API specs that <span>humans and machines</span> actually understand</h1>
+                <a href="specs/mapi-specification-v0.92.html" class="primary-cta">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    Read the Full Specification
+                </a>
+                <p class="hero-description">
+                    You might know them as OpenAPI documents, Swagger docs, API contracts, or API schemas—they're all ways to describe what your API does. MAPI is a Markdown-based format for writing these descriptions, designed for clarity. Specs that developers can read and LLMs can consume—no more wrestling with walls of YAML.
+                </p>
+            </div>
+        </section>
+
+        <div class="container">
+            <div class="divider">
+                <div class="divider-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <section class="why-section">
+            <div class="container">
+                <div class="why-grid">
+                    <div class="why-card">
+                        <div class="why-card-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </div>
+                        <h3>Human-First Readability</h3>
+                        <p>Markdown is already how developers write docs. MAPI embraces that—your API specs read like documentation, not configuration files.</p>
+                    </div>
+                    <div class="why-card">
+                        <div class="why-card-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                            </svg>
+                        </div>
+                        <h3>AI-Native Design</h3>
+                        <p>TypeScript interfaces, clear intentions, and structured metadata make MAPI ideal for LLMs to parse and act upon—no hallucinated endpoints.</p>
+                    </div>
+                    <div class="why-card">
+                        <div class="why-card-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                            </svg>
+                        </div>
+                        <h3>Full Interoperability</h3>
+                        <p>Convert freely between MAPI, OpenAPI, and AsyncAPI. Use MAPI for authoring, export to OpenAPI when tools demand it.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="disclosure-section">
+            <div class="container">
+                <div class="disclosure-box">
+                    <div class="disclosure-content">
+                        <h2>Progressive Disclosure</h2>
+                        <p>
+                            Not everyone needs the full 30-page spec. MAPI uses reference cards—focused guides for specific tasks.
+                            Start with the disclosure document, load only what you need. This is especially powerful for AI agents:
+                            give them just the right context without overwhelming their token window.
+                        </p>
+                    </div>
+                    <div class="disclosure-visual">
+                        <div class="disclosure-step">
+                            <div class="disclosure-step-num">1</div>
+                            <span>Start with the Disclosure document to identify your task</span>
+                        </div>
+                        <div class="disclosure-step">
+                            <div class="disclosure-step-num">2</div>
+                            <span>Load the specific reference card you need</span>
+                        </div>
+                        <div class="disclosure-step">
+                            <div class="disclosure-step-num">3</div>
+                            <span>Fall back to the full spec only for edge cases</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="why-mapi-section" id="why-llms">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Why not just OpenAPI?</h2>
+                    <p>OpenAPI was built for a different era—REST resources, URL-centric design, code generators. Modern APIs have moved on. MAPI is built for how APIs actually work today.</p>
+                </div>
+
+                <div class="comparison-grid">
+                    <div class="comparison-card problem">
+                        <h3>The OpenAPI Problem</h3>
+                        <ul>
+                            <li><strong>Resource-oriented thinking</strong> — URLs as the organizing principle made sense for REST, but modern APIs are capability-oriented</li>
+                            <li><strong>No native WebSocket/SSE support</strong> — You need AsyncAPI for event-driven patterns, fragmenting your spec</li>
+                            <li><strong>Two specs to maintain</strong> — OpenAPI + AsyncAPI means duplicate schemas, drift, and confusion</li>
+                            <li><strong>Designed for machines</strong> — JSON Schema verbosity makes specs hard for humans and LLMs to parse</li>
+                        </ul>
+                    </div>
+                    <div class="comparison-card solution">
+                        <h3>The MAPI Approach</h3>
+                        <ul>
+                            <li><strong>Capability-oriented</strong> — Organize by what your API does, not what URLs it exposes</li>
+                            <li><strong>Native event support</strong> — WebSockets, SSE, and streaming are first-class citizens, same spec</li>
+                            <li><strong>One unified format</strong> — REST, GraphQL, WebSocket, SSE—all in one document</li>
+                            <li><strong>Human and AI readable</strong> — Markdown + TypeScript interfaces that both developers and LLMs understand</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="llm-callout">
+                    <div class="llm-callout-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h4>Built for the AI era</h4>
+                        <p>MAPI's <strong>Intentions</strong> explain when to use each capability. <strong>Logic Constraints</strong> make business rules explicit. LLMs don't hallucinate endpoints—they understand your API.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 MAPI Project <span class="footer-divider">|</span> <a href="authors.html">The Authors</a></p>
+    </footer>
+</body>
+</html>

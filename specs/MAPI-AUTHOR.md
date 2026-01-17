@@ -1,0 +1,135 @@
+# MAPI Author Reference
+
+**Purpose:** Write a MAPI specification from scratch.
+
+## Document Skeleton
+
+```markdown
+# API Name
+
+Brief description of the API.
+
+~~~meta
+version: 1.0.0
+base_url: https://api.example.com/v1
+auth: bearer
+~~~
+
+## Global Types
+
+` ` `typescript
+interface SharedType { ... }
+` ` `
+
+---
+
+## Capability: Do Something
+
+~~~meta
+id: namespace.action
+transport: HTTP POST /path
+~~~
+
+### Intention
+
+Why and when to use this capability.
+
+### Logic Constraints
+
+- Business rules that aren't expressible in TypeScript
+- Cross-field dependencies
+- Conditional behaviors
+
+### Input
+
+` ` `typescript
+interface DoSomethingRequest {
+  field: string;  // required
+}
+` ` `
+
+### Output
+
+~~~response 200
+` ` `typescript
+interface DoSomethingResponse { ... }
+` ` `
+~~~
+
+> Errors: standard (400, 401, 429)
+```
+
+## Writing Good Intentions
+
+**Do:**
+- Explain what the capability accomplishes
+- State when an agent should choose this over alternatives
+- Mention prerequisites or context needed
+
+**Don't:**
+- Repeat the schema
+- Just say "creates a resource"
+- Leave it generic
+
+**Example:**
+> Send a conversation to Claude and receive a response. Use this when you want the complete response at once. For real-time streaming, use Stream Message instead.
+
+## Schema Constraints vs Logic Constraints
+
+**In TypeScript comments** (schema-level):
+- `// required` — field must be present
+- `// range: 1-100` — numeric bounds
+- `// length: 1-256` — string length
+- `// default: value` — default if omitted
+- `// format: email` — format hint
+
+**In Logic Constraints section** (behavioral):
+- "If `stream: true`, response is SSE"
+- "Messages must alternate user/assistant"
+- "System prompt is processed before messages"
+- "Requires prior authentication via OAuth flow"
+
+**Rule of thumb:** If it's about one field's value, use a comment. If it's about relationships or behavior, use Logic Constraints.
+
+## Error Handling
+
+**Standard errors** — don't document, just reference:
+```markdown
+> Errors: standard (400, 401, 429, 500)
+```
+
+**Custom errors** — document only if non-standard:
+```markdown
+~~~response 409
+` ` `typescript
+interface ConflictError {
+  type: 'conflict';
+  existing_id: string;
+}
+` ` `
+~~~
+```
+
+## Transport Strings
+
+| Pattern | Meaning |
+|---------|---------|
+| `HTTP GET /path` | GET request |
+| `HTTP POST /path` | POST request |
+| `HTTP GET /path/{id}` | Path parameter |
+| `HTTP POST /path (SSE)` | Server-Sent Events |
+| `WS /path` | WebSocket |
+| `INTERNAL` | Client-side, no network |
+
+## Common Mistakes
+
+1. **Over-documenting errors** — 400/401/500 don't need schemas
+2. **Weak intentions** — "Creates a user" is useless; explain *when* and *why*
+3. **Logic in schema comments** — "Must be provided if X" belongs in Logic Constraints
+4. **Missing `// required`** — TypeScript `?` means optional; non-`?` fields need `// required`
+
+---
+
+**Wrong card?** See [MAPI-DISCLOSURE.md](MAPI-DISCLOSURE.md) to find the right resource.
+
+**Need more detail?** See the full [MAPI Specification](MAPI-SPECIFICATION-v0.92.md).

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Reference Cards - Markdown API (MAPI)</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mustard: #D4A03E;
+            --burnt-orange: #C85D3E;
+            --teal: #2A7B7B;
+            --olive: #5E7153;
+            --cream: #FAF7F2;
+            --warm-white: #FFFEF9;
+            --charcoal: #2D2D2D;
+            --light-charcoal: #4A4A4A;
+            --sand: #E8E0D5;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--cream);
+            color: var(--charcoal);
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+        /* Header */
+        header { padding: 1.5rem 0; }
+        header .container { display: flex; align-items: center; justify-content: space-between; }
+        .logo { font-size: 1.25rem; font-weight: 600; color: var(--teal); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+        .logo-mark { width: 32px; height: 32px; background: var(--burnt-orange); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem; }
+        .main-nav { display: flex; align-items: center; gap: 2rem; }
+        .main-nav a { text-decoration: none; color: var(--light-charcoal); font-size: 0.95rem; font-weight: 500; transition: color 0.2s ease; }
+        .main-nav a:hover, .main-nav a.active { color: var(--teal); }
+        .main-nav a.nav-cta { background: var(--teal); color: white; padding: 0.6rem 1.25rem; border-radius: 8px; }
+        .main-nav a.nav-cta:hover { background: #237070; color: white; }
+        .main-nav a.nav-cta-alt { background: var(--burnt-orange); }
+        .main-nav a.nav-cta-alt:hover { background: #A84D32; }
+
+        /* Hero */
+        .hero {
+            padding: 4rem 0 3rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 3rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 span {
+            color: var(--burnt-orange);
+        }
+
+        .hero .subtitle {
+            font-size: 1.25rem;
+            color: var(--light-charcoal);
+            max-width: 700px;
+            margin: 0 auto 1.5rem;
+            line-height: 1.7;
+        }
+
+        .hero .note {
+            font-size: 1rem;
+            color: var(--light-charcoal);
+            max-width: 650px;
+            margin: 0 auto;
+            font-style: italic;
+            opacity: 0.85;
+        }
+
+        /* Cards grid */
+        .cards-section {
+            padding: 2rem 0 5rem;
+        }
+
+        .section-title {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-subtitle {
+            font-size: 1.05rem;
+            color: var(--light-charcoal);
+            margin-bottom: 2rem;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .ref-card {
+            background: var(--warm-white);
+            border: 1px solid var(--sand);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.2s ease;
+        }
+
+        .ref-card:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+
+        .ref-card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .ref-card-icon svg {
+            width: 28px;
+            height: 28px;
+            color: white;
+        }
+
+        .ref-card-icon.author { background: var(--teal); }
+        .ref-card-icon.convert { background: var(--burnt-orange); }
+        .ref-card-icon.export { background: var(--olive); }
+        .ref-card-icon.validate { background: var(--mustard); }
+
+        .ref-card h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 0.5rem;
+        }
+
+        .ref-card p {
+            font-size: 0.95rem;
+            color: var(--light-charcoal);
+            line-height: 1.6;
+            margin-bottom: 1.25rem;
+        }
+
+        .ref-card-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .ref-card-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .ref-card-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .ref-card-btn.primary {
+            background: var(--charcoal);
+            color: white;
+        }
+
+        .ref-card-btn.primary:hover {
+            background: #1a1a1a;
+        }
+
+        .ref-card-btn.secondary {
+            background: var(--sand);
+            color: var(--charcoal);
+        }
+
+        .ref-card-btn.secondary:hover {
+            background: #d9d0c3;
+        }
+
+        /* Copy prompt section */
+        .copy-section {
+            background: var(--charcoal);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .copy-text {
+            flex: 1;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #E8E0D5;
+            word-break: break-all;
+        }
+
+        .copy-text span {
+            color: var(--mustard);
+        }
+
+        .copy-btn {
+            background: var(--teal);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover { background: #237070; }
+        .copy-btn svg { width: 16px; height: 16px; }
+        .copy-btn.copied { background: var(--olive); }
+
+        /* How it works */
+        .how-it-works {
+            background: var(--sand);
+            border-radius: 20px;
+            padding: 3rem;
+            margin-top: 3rem;
+        }
+
+        .how-it-works h2 {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 1.5rem;
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .step {
+            text-align: center;
+        }
+
+        .step-num {
+            width: 40px;
+            height: 40px;
+            background: var(--burnt-orange);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin: 0 auto 1rem;
+        }
+
+        .step h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--charcoal);
+            margin-bottom: 0.5rem;
+        }
+
+        .step p {
+            font-size: 0.9rem;
+            color: var(--light-charcoal);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .steps {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .hero h1 {
+                font-size: 2.25rem;
+            }
+
+            .main-nav a:not(.nav-cta):not(.nav-cta-alt) {
+                display: none;
+            }
+        }
+
+        /* Footer */
+        .site-footer {
+            background: var(--charcoal);
+            color: var(--cream);
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .site-footer a {
+            color: var(--mustard);
+            text-decoration: none;
+        }
+
+        .site-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-divider {
+            color: rgba(255,255,255,0.3);
+            margin: 0 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="index.html" class="logo">
+                <div class="logo-mark">M</div>
+                MarkdownAPI
+            </a>
+            <nav class="main-nav">
+                <a href="getting-started.html">Getting Started</a>
+                <a href="index.html#why-llms">Why MAPI</a>
+                <a href="specs/mapi-specification-v0.92.html" class="nav-cta">Human Spec</a>
+                <a href="llm-spec.html" class="nav-cta nav-cta-alt active">LLM Spec</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>Reference Cards for <span>LLMs</span></h1>
+                <p class="subtitle">
+                    These compact markdown files teach LLMs how to work with MAPI. Attach one to your chat, or tell your LLM to fetch it directly.
+                </p>
+                <p class="note">
+                    Each card is optimized for token efficiency—containing only what an LLM needs for that specific task.
+                </p>
+            </div>
+        </section>
+
+        <section class="cards-section">
+            <div class="container">
+                <h2 class="section-title">Available Reference Cards</h2>
+                <p class="section-subtitle">Choose the card that matches what you want your LLM to do.</p>
+
+                <div class="cards-grid">
+                    <!-- Author Card -->
+                    <div class="ref-card">
+                        <div class="ref-card-icon author">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                            </svg>
+                        </div>
+                        <h3>MAPI Author</h3>
+                        <p>Teaches an LLM to write MAPI specifications from scratch. Describe your API and get a complete spec.</p>
+                        <div class="ref-card-actions">
+                            <a href="specs/MAPI-AUTHOR.md" target="_blank" class="ref-card-btn primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                                </svg>
+                                Open Markdown
+                            </a>
+                            <a href="guides/llm-authoring.html" class="ref-card-btn secondary">Learn More</a>
+                        </div>
+                        <div class="copy-section">
+                            <div class="copy-text"><span>Fetch:</span> https://markdownapi.org/specs/MAPI-AUTHOR.md</div>
+                            <button class="copy-btn" onclick="copyToClipboard('Fetch this page: https://markdownapi.org/specs/MAPI-AUTHOR.md', this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- OpenAPI to MAPI -->
+                    <div class="ref-card">
+                        <div class="ref-card-icon convert">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+                            </svg>
+                        </div>
+                        <h3>OpenAPI to MAPI</h3>
+                        <p>Converts OpenAPI/Swagger specifications to MAPI format. Handles field mapping and type conversion automatically.</p>
+                        <div class="ref-card-actions">
+                            <a href="specs/OPENAPI-TO-MAPI.md" target="_blank" class="ref-card-btn primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                                </svg>
+                                Open Markdown
+                            </a>
+                            <a href="guides/from-openapi.html" class="ref-card-btn secondary">Learn More</a>
+                        </div>
+                        <div class="copy-section">
+                            <div class="copy-text"><span>Fetch:</span> https://markdownapi.org/specs/OPENAPI-TO-MAPI.md</div>
+                            <button class="copy-btn" onclick="copyToClipboard('Fetch this page: https://markdownapi.org/specs/OPENAPI-TO-MAPI.md', this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- AsyncAPI to MAPI -->
+                    <div class="ref-card">
+                        <div class="ref-card-icon convert">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z" />
+                            </svg>
+                        </div>
+                        <h3>AsyncAPI to MAPI</h3>
+                        <p>Converts AsyncAPI specifications for WebSocket and event-driven APIs to MAPI's unified format.</p>
+                        <div class="ref-card-actions">
+                            <a href="specs/ASYNCAPI-TO-MAPI.md" target="_blank" class="ref-card-btn primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                                </svg>
+                                Open Markdown
+                            </a>
+                            <a href="guides/from-asyncapi.html" class="ref-card-btn secondary">Learn More</a>
+                        </div>
+                        <div class="copy-section">
+                            <div class="copy-text"><span>Fetch:</span> https://markdownapi.org/specs/ASYNCAPI-TO-MAPI.md</div>
+                            <button class="copy-btn" onclick="copyToClipboard('Fetch this page: https://markdownapi.org/specs/ASYNCAPI-TO-MAPI.md', this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- MAPI to OpenAPI -->
+                    <div class="ref-card">
+                        <div class="ref-card-icon export">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15m0-3l-3-3m0 0l-3 3m3-3V15" />
+                            </svg>
+                        </div>
+                        <h3>MAPI to OpenAPI</h3>
+                        <p>Exports MAPI specifications to OpenAPI 3.1 format for use with legacy tooling and code generators.</p>
+                        <div class="ref-card-actions">
+                            <a href="specs/MAPI-TO-OPENAPI.md" target="_blank" class="ref-card-btn primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                                </svg>
+                                Open Markdown
+                            </a>
+                            <a href="guides/to-openapi.html" class="ref-card-btn secondary">Learn More</a>
+                        </div>
+                        <div class="copy-section">
+                            <div class="copy-text"><span>Fetch:</span> https://markdownapi.org/specs/MAPI-TO-OPENAPI.md</div>
+                            <button class="copy-btn" onclick="copyToClipboard('Fetch this page: https://markdownapi.org/specs/MAPI-TO-OPENAPI.md', this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Validator -->
+                    <div class="ref-card">
+                        <div class="ref-card-icon validate">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3>MAPI Validator</h3>
+                        <p>Validates MAPI documents for structural correctness, catching missing sections, invalid transport strings, and more.</p>
+                        <div class="ref-card-actions">
+                            <a href="specs/MAPI-VALIDATOR.md" target="_blank" class="ref-card-btn primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                                </svg>
+                                Open Markdown
+                            </a>
+                            <a href="guides/validation.html" class="ref-card-btn secondary">Learn More</a>
+                        </div>
+                        <div class="copy-section">
+                            <div class="copy-text"><span>Fetch:</span> https://markdownapi.org/specs/MAPI-VALIDATOR.md</div>
+                            <button class="copy-btn" onclick="copyToClipboard('Fetch this page: https://markdownapi.org/specs/MAPI-VALIDATOR.md', this)">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="how-it-works">
+                    <h2>How to Use</h2>
+                    <div class="steps">
+                        <div class="step">
+                            <div class="step-num">1</div>
+                            <h4>Choose a Card</h4>
+                            <p>Pick the reference card that matches your task—writing, converting, exporting, or validating.</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-num">2</div>
+                            <h4>Give it to Your LLM</h4>
+                            <p>Either attach the markdown file, paste it directly, or tell the LLM to fetch the URL.</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-num">3</div>
+                            <h4>Describe What You Need</h4>
+                            <p>The reference card teaches the format. You just describe your API or paste your existing spec.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 MAPI Project <span class="footer-divider">|</span> <a href="authors.html">The Authors</a></p>
+    </footer>
+
+    <script>
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text).then(function() {
+                btn.classList.add('copied');
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg> Copied!';
+                setTimeout(function() {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg> Copy';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

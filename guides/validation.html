@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validate a Spec - Markdown API (MAPI)</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root { --mustard: #D4A03E; --burnt-orange: #C85D3E; --teal: #2A7B7B; --olive: #5E7153; --cream: #FAF7F2; --warm-white: #FFFEF9; --charcoal: #2D2D2D; --light-charcoal: #4A4A4A; --sand: #E8E0D5; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Space Grotesk', sans-serif; background-color: var(--cream); color: var(--charcoal); line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+        .container-wide { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+        header { padding: 1.5rem 0; }
+        header .container-wide { display: flex; align-items: center; justify-content: space-between; }
+        .logo { font-size: 1.25rem; font-weight: 600; color: var(--teal); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+        .logo-mark { width: 32px; height: 32px; background: var(--burnt-orange); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem; }
+        .main-nav { display: flex; align-items: center; gap: 2rem; }
+        .main-nav a { text-decoration: none; color: var(--light-charcoal); font-size: 0.95rem; font-weight: 500; transition: color 0.2s ease; }
+        .main-nav a:hover, .main-nav a.active { color: var(--teal); }
+        .main-nav a.nav-cta { background: var(--teal); color: white; padding: 0.6rem 1.25rem; border-radius: 8px; }
+        .main-nav a.nav-cta:hover { background: #237070; color: white; }
+        .main-nav a.nav-cta-alt { background: var(--burnt-orange); }
+        .main-nav a.nav-cta-alt:hover { background: #A84D32; }
+        .breadcrumb { padding: 1rem 0; font-size: 0.9rem; }
+        .breadcrumb a { color: var(--teal); text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb span { color: var(--light-charcoal); }
+        .page-header { padding: 2rem 0 3rem; }
+        .page-header h1 { font-family: 'Source Serif 4', Georgia, serif; font-size: 2.75rem; font-weight: 600; color: var(--charcoal); margin-bottom: 1rem; }
+        .page-header .subtitle { font-size: 1.2rem; color: var(--light-charcoal); max-width: 700px; line-height: 1.7; }
+        .content { padding: 2rem 0 5rem; }
+        .content h2 { font-family: 'Source Serif 4', Georgia, serif; font-size: 1.75rem; font-weight: 600; color: var(--charcoal); margin: 3rem 0 1.25rem; }
+        .content h2:first-child { margin-top: 0; }
+        .content h3 { font-size: 1.15rem; font-weight: 600; color: var(--charcoal); margin: 2rem 0 0.75rem; }
+        .content p { font-size: 1.05rem; color: var(--light-charcoal); line-height: 1.75; margin-bottom: 1.25rem; }
+        .content ul, .content ol { margin: 0 0 1.5rem 1.5rem; color: var(--light-charcoal); }
+        .content li { font-size: 1.05rem; line-height: 1.75; margin-bottom: 0.5rem; }
+        .content strong { color: var(--charcoal); font-weight: 600; }
+        .code-block { background: var(--charcoal); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0 2rem; overflow-x: auto; }
+        .code-block pre { margin: 0; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.875rem; line-height: 1.7; color: #E8E0D5; }
+        .code-block .comment { color: #6A9955; }
+        .code-block .string { color: #CE9178; }
+        .code-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .code-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .code-dot.red { background: #FF5F56; }
+        .code-dot.yellow { background: #FFBD2E; }
+        .code-dot.green { background: #27C93F; }
+        .code-title { margin-left: 0.75rem; font-size: 0.8rem; color: #888; }
+        code { background: var(--sand); padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.9em; color: var(--burnt-orange); }
+        .callout { background: var(--warm-white); border-left: 4px solid var(--teal); border-radius: 0 12px 12px 0; padding: 1.25rem 1.5rem; margin: 1.5rem 0; }
+        .callout.tip { border-left-color: var(--olive); }
+        .callout-title { font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; color: var(--teal); }
+        .callout.tip .callout-title { color: var(--olive); }
+        .callout p { margin-bottom: 0; font-size: 0.95rem; }
+        .ref-card-link { display: flex; align-items: center; gap: 1rem; background: var(--warm-white); border: 2px solid var(--teal); border-radius: 12px; padding: 1.25rem 1.5rem; text-decoration: none; color: inherit; margin: 2rem 0; transition: all 0.2s ease; }
+        .ref-card-link:hover { background: var(--teal); color: white; }
+        .ref-card-link:hover .ref-icon { background: rgba(255,255,255,0.2); }
+        .ref-card-link:hover .ref-icon svg { color: white; }
+        .ref-card-link:hover p { color: rgba(255,255,255,0.9); }
+        .ref-icon { width: 48px; height: 48px; background: var(--sand); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ref-icon svg { width: 24px; height: 24px; color: var(--teal); }
+        .ref-card-link h4 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .ref-card-link p { font-size: 0.85rem; margin: 0; color: var(--light-charcoal); }
+        /* Copy prompt box */
+        .copy-prompt { background: var(--charcoal); border-radius: 10px; padding: 1rem 1.25rem; margin-top: 0.75rem; display: flex; align-items: center; gap: 1rem; }
+        .copy-prompt-text { flex: 1; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem; color: #E8E0D5; word-break: break-all; }
+        .copy-prompt-text span { color: var(--mustard); }
+        .copy-btn { background: var(--teal); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s ease; white-space: nowrap; }
+        .copy-btn:hover { background: #237070; }
+        .copy-btn svg { width: 16px; height: 16px; }
+        .copy-btn.copied { background: var(--olive); }
+        .copy-hint { font-size: 0.8rem; color: var(--light-charcoal); margin-top: 0.5rem; font-style: italic; }
+        .checklist { background: var(--warm-white); border-radius: 16px; padding: 2rem; margin: 2rem 0; }
+        .checklist h3 { margin-top: 0; margin-bottom: 1.5rem; font-size: 1.1rem; }
+        .checklist-section { margin-bottom: 1.5rem; }
+        .checklist-section:last-child { margin-bottom: 0; }
+        .checklist-section h4 { font-size: 0.9rem; font-weight: 600; color: var(--teal); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .checklist-item { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--sand); }
+        .checklist-item:last-child { border-bottom: none; }
+        .check-box { width: 20px; height: 20px; border: 2px solid var(--sand); border-radius: 4px; flex-shrink: 0; margin-top: 2px; }
+        .checklist-item span { font-size: 0.95rem; color: var(--light-charcoal); }
+        .next-steps { background: var(--sand); border-radius: 16px; padding: 2rem; margin-top: 3rem; }
+        .next-steps h3 { margin-top: 0; margin-bottom: 1rem; }
+        .next-links { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .next-link { background: var(--warm-white); padding: 0.75rem 1.25rem; border-radius: 8px; text-decoration: none; color: var(--charcoal); font-weight: 500; font-size: 0.95rem; transition: all 0.2s ease; }
+        .next-link:hover { background: var(--teal); color: white; }
+        @media (max-width: 600px) { .main-nav a:not(.nav-cta) { display: none; } .page-header h1 { font-size: 2rem; } }
+        .site-footer { background: var(--charcoal); color: var(--cream); text-align: center; padding: 2rem; margin-top: 3rem; }
+        .site-footer a { color: var(--mustard); text-decoration: none; }
+        .site-footer a:hover { text-decoration: underline; }
+        .footer-divider { color: rgba(255,255,255,0.3); margin: 0 1rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container-wide">
+            <a href="../index.html" class="logo"><div class="logo-mark">M</div>MarkdownAPI</a>
+            <nav class="main-nav">
+                <a href="../getting-started.html" class="active">Getting Started</a>
+                <a href="../index.html#why-llms">Why MAPI</a>
+                <a href="../specs/mapi-specification-v0.92.html" class="nav-cta">Human Spec</a>
+                <a href="../llm-spec.html" class="nav-cta nav-cta-alt">LLM Spec</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <nav class="breadcrumb">
+            <a href="../getting-started.html">Getting Started</a>
+            <span> / Validate a Spec</span>
+        </nav>
+    </div>
+
+    <main>
+        <section class="page-header">
+            <div class="container">
+                <h1>Validate a Spec</h1>
+                <p class="subtitle">Check that your MAPI document is well-formed and follows the specification. Catch structural issues before they cause problems downstream.</p>
+            </div>
+        </section>
+
+        <section class="content">
+            <div class="container">
+
+                <h2>Validation methods</h2>
+
+                <p>MAPI is designed to be validated easily—by humans, LLMs, or automated tools:</p>
+
+                <ul>
+                    <li><strong>Manual review</strong> — Use the checklist below against your document</li>
+                    <li><strong>LLM validation</strong> — Give an LLM the validator reference card and your spec</li>
+                    <li><strong>Automated tools</strong> — Coming soon (community contributions welcome)</li>
+                </ul>
+
+                <h2>LLM-assisted validation</h2>
+
+                <p>The validator reference card teaches an LLM exactly what to check. It will catch structural issues, invalid transport strings, missing required sections, and more.</p>
+
+                <a href="../specs/MAPI-VALIDATOR.md" class="ref-card-link">
+                    <div class="ref-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h4>MAPI Validator Reference Card</h4>
+                        <p>Raw markdown for LLM consumption — validation rules and error patterns</p>
+                    </div>
+                </a>
+                <div class="copy-prompt">
+                    <div class="copy-prompt-text">
+                        <span>Fetch this page:</span> https://markdownapi.org/specs/MAPI-VALIDATOR.md
+                    </div>
+                    <button class="copy-btn" onclick="copyToClipboard('Fetch this page: https://markdownapi.org/specs/MAPI-VALIDATOR.md', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>
+                        Copy
+                    </button>
+                </div>
+                <p class="copy-hint">Or paste this prompt directly into your LLM chat</p>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-dot red"></span>
+                        <span class="code-dot yellow"></span>
+                        <span class="code-dot green"></span>
+                        <span class="code-title">Prompt</span>
+                    </div>
+                    <pre><span class="comment"># Instructions</span>
+
+Validate the following MAPI document against the rules in the
+validator reference card. Report any issues found, organized by:
+
+1. Document-level issues (missing title, metadata, etc.)
+2. Capability-level issues (per capability)
+3. TypeScript syntax issues (in code blocks)
+
+For each issue, explain what's wrong and how to fix it.
+
+<span class="comment"># MAPI Validator Reference Card</span>
+
+<span class="string">[Paste MAPI-VALIDATOR.md here]</span>
+
+<span class="comment"># MAPI Document to Validate</span>
+
+<span class="string">[Paste your .mapi.md file here]</span></pre>
+                </div>
+
+                <h2>Quick checklist</h2>
+
+                <p>Run through this manually for a quick sanity check:</p>
+
+                <div class="checklist">
+                    <h3>Validation Checklist</h3>
+
+                    <div class="checklist-section">
+                        <h4>Document Level</h4>
+                        <div class="checklist-item">
+                            <div class="check-box"></div>
+                            <span>File has <code>.mapi.md</code> extension</span>
+                        </div>
+                        <div class="checklist-item">
+                            <div class="check-box"></div>
+                            <span>Starts with <code># Title</code> (H1 heading)</span>
+                        </div>
+                        <div class="checklist-item">
+                            <div class="check-box"></div>
+                            <span>Has document <code>~~~meta</code> block with <code>version</code>, <code>base_url</code>, <code>auth</code></span>
+                        </div>
+                        <div class="checklist-item">
+                            <div class="check-box"></div>
+                            <span>Has at least one <code>## Capability:</code> section</span>
+                        </div>
+                    </div>
+
+                    <div class="checklist-section">
+                        <h4>Per Capability</h4>
+                        <div class="checklist-item">
+                            <div class="check-box"></div>
+                            <span>Has <code>~~~meta</code> block with <code>id</code> and <code>transport</code></span>
+                        </div>
+                        <div class="checklist-item">
+                            <div class="check-box"></div>
+                            <span>Transport matches pattern: <code>HTTP METHOD /path</code> or <code>WS /path</code></span>
+                        </div>
+                        <div class="checklist-item">
+                            <div class="check-box"></div>
+                            <span>Has <code>### Intention</code> with non-empty prose</span>
+                        </div>
+                        <div class="checklist-item">
+                            <div class="check-box"></div>
+                            <span>Has <code>### Input</code> if method expects body (POST/PUT/PATCH)</span>
+                        </div>
+                        <div class="checklist-item">
+                            <div class="check-box"></div>
+                            <span>Has <code>~~~response 200</code> or <code>### Output</code></span>
+                        </div>
+                        <div class="checklist-item">
+                            <div class="check-box"></div>
+                            <span>TypeScript blocks have valid syntax</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h2>Common issues</h2>
+
+                <p>These come up frequently, especially with LLM-generated specs:</p>
+
+                <ul>
+                    <li><strong>Missing <code>HTTP</code> prefix</strong> — Transport should be <code>HTTP POST /path</code>, not just <code>POST /path</code></li>
+                    <li><strong>Weak Intentions</strong> — "Creates a user" doesn't help; explain <em>when</em> and <em>why</em></li>
+                    <li><strong>Constraints in wrong place</strong> — <code>field: string required</code> isn't valid TypeScript; use <code>field: string; // required</code></li>
+                    <li><strong>Response without status</strong> — Use <code>~~~response 200</code>, not just <code>~~~response</code></li>
+                    <li><strong>Over-documenting errors</strong> — Standard errors (400, 401, 500) should use <code>> Errors: standard (...)</code></li>
+                </ul>
+
+                <div class="callout tip">
+                    <div class="callout-title">Iterative fixing</div>
+                    <p>After validation, ask the LLM to "fix all the issues you found and output the corrected MAPI document." It's usually faster than fixing manually.</p>
+                </div>
+
+                <div class="next-steps">
+                    <h3>Next steps</h3>
+                    <div class="next-links">
+                        <a href="llm-authoring.html" class="next-link">Have an LLM write a spec</a>
+                        <a href="to-openapi.html" class="next-link">Export to OpenAPI</a>
+                        <a href="llm-authoring.html" class="next-link">Write another spec</a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 MAPI Project <span class="footer-divider">|</span> <a href="../authors.html">The Authors</a></p>
+    </footer>
+
+    <script>
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text).then(function() {
+                btn.classList.add('copied');
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg> Copied!';
+                setTimeout(function() {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg> Copy';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

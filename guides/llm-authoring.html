@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Have an LLM Write Your Spec - Markdown API (MAPI)</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mustard: #D4A03E;
+            --burnt-orange: #C85D3E;
+            --teal: #2A7B7B;
+            --olive: #5E7153;
+            --cream: #FAF7F2;
+            --warm-white: #FFFEF9;
+            --charcoal: #2D2D2D;
+            --light-charcoal: #4A4A4A;
+            --sand: #E8E0D5;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--cream);
+            color: var(--charcoal);
+            line-height: 1.6;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+        .container-wide { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+        header { padding: 1.5rem 0; }
+        header .container-wide { display: flex; align-items: center; justify-content: space-between; }
+
+        .logo {
+            font-size: 1.25rem; font-weight: 600; color: var(--teal);
+            text-decoration: none; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .logo-mark {
+            width: 32px; height: 32px; background: var(--burnt-orange); border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 700; font-size: 0.9rem;
+        }
+
+        .main-nav { display: flex; align-items: center; gap: 2rem; }
+        .main-nav a { text-decoration: none; color: var(--light-charcoal); font-size: 0.95rem; font-weight: 500; transition: color 0.2s ease; }
+        .main-nav a:hover, .main-nav a.active { color: var(--teal); }
+        .main-nav a.nav-cta { background: var(--teal); color: white; padding: 0.6rem 1.25rem; border-radius: 8px; }
+        .main-nav a.nav-cta:hover { background: #237070; color: white; }
+        .main-nav a.nav-cta-alt { background: var(--burnt-orange); }
+        .main-nav a.nav-cta-alt:hover { background: #A84D32; }
+
+        .breadcrumb { padding: 1rem 0; font-size: 0.9rem; }
+        .breadcrumb a { color: var(--teal); text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb span { color: var(--light-charcoal); }
+
+        .page-header { padding: 2rem 0 3rem; }
+        .page-header h1 { font-family: 'Source Serif 4', Georgia, serif; font-size: 2.75rem; font-weight: 600; color: var(--charcoal); margin-bottom: 1rem; }
+        .page-header .subtitle { font-size: 1.2rem; color: var(--light-charcoal); max-width: 700px; line-height: 1.7; }
+        .page-header .terminology-note { font-size: 0.95rem; color: var(--light-charcoal); max-width: 600px; line-height: 1.6; font-style: italic; opacity: 0.8; margin-top: 0.75rem; }
+
+        .content { padding: 2rem 0 5rem; }
+        .content h2 { font-family: 'Source Serif 4', Georgia, serif; font-size: 1.75rem; font-weight: 600; color: var(--charcoal); margin: 3rem 0 1.25rem; }
+        .content h2:first-child { margin-top: 0; }
+        .content p { font-size: 1.05rem; color: var(--light-charcoal); line-height: 1.75; margin-bottom: 1.25rem; }
+        .content ul { margin: 0 0 1.5rem 1.5rem; color: var(--light-charcoal); }
+        .content li { font-size: 1.05rem; line-height: 1.75; margin-bottom: 0.5rem; }
+        .content strong { color: var(--charcoal); font-weight: 600; }
+
+        code { background: var(--sand); padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.9em; color: var(--burnt-orange); }
+
+        /* Chat mockup */
+        .chat-container {
+            background: var(--charcoal);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .chat-message {
+            margin-bottom: 1.5rem;
+        }
+
+        .chat-message:last-child {
+            margin-bottom: 0;
+        }
+
+        .chat-user {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .chat-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .chat-avatar.user {
+            background: var(--burnt-orange);
+            color: white;
+        }
+
+        .chat-avatar.ai {
+            background: linear-gradient(135deg, #7B6BA7 0%, #5D4E8C 100%);
+            color: white;
+        }
+
+        .chat-bubble {
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            color: #E8E0D5;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            max-width: 85%;
+        }
+
+        .chat-bubble.user-bubble {
+            background: rgba(200, 93, 62, 0.2);
+        }
+
+        .chat-bubble .file-attachment {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255,255,255,0.1);
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        .chat-bubble .file-attachment svg {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        .chat-label {
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 0.5rem;
+            margin-left: 44px;
+        }
+
+        /* Reference card link */
+        .ref-card-link {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--warm-white);
+            border: 2px solid var(--teal);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            text-decoration: none;
+            color: inherit;
+            margin: 2rem 0;
+            transition: all 0.2s ease;
+        }
+        .ref-card-link:hover { background: var(--teal); color: white; }
+        .ref-card-link:hover .ref-icon { background: rgba(255,255,255,0.2); }
+        .ref-card-link:hover .ref-icon svg { color: white; }
+        .ref-card-link:hover p { color: rgba(255,255,255,0.9); }
+        .ref-icon { width: 48px; height: 48px; background: var(--sand); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ref-icon svg { width: 24px; height: 24px; color: var(--teal); }
+        .ref-card-link h4 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .ref-card-link p { font-size: 0.85rem; margin: 0; color: var(--light-charcoal); }
+
+        /* Copy prompt box */
+        .copy-prompt {
+            background: var(--charcoal);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-top: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .copy-prompt-text {
+            flex: 1;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #E8E0D5;
+            word-break: break-all;
+        }
+        .copy-prompt-text span {
+            color: var(--mustard);
+        }
+        .copy-btn {
+            background: var(--teal);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .copy-btn:hover {
+            background: #237070;
+        }
+        .copy-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        .copy-btn.copied {
+            background: var(--olive);
+        }
+        .copy-hint {
+            font-size: 0.8rem;
+            color: var(--light-charcoal);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        .callout { background: var(--warm-white); border-left: 4px solid var(--olive); border-radius: 0 12px 12px 0; padding: 1.25rem 1.5rem; margin: 1.5rem 0; }
+        .callout-title { font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; color: var(--olive); }
+        .callout p { margin-bottom: 0; font-size: 0.95rem; }
+
+        .next-steps { background: var(--sand); border-radius: 16px; padding: 2rem; margin-top: 3rem; }
+        .next-steps h3 { margin-top: 0; margin-bottom: 1rem; font-size: 1.1rem; }
+        .next-links { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .next-link { background: var(--warm-white); padding: 0.75rem 1.25rem; border-radius: 8px; text-decoration: none; color: var(--charcoal); font-weight: 500; font-size: 0.95rem; transition: all 0.2s ease; }
+        .next-link:hover { background: var(--teal); color: white; }
+
+        @media (max-width: 600px) {
+            .main-nav a:not(.nav-cta) { display: none; }
+            .page-header h1 { font-size: 2rem; }
+            .chat-bubble { max-width: 95%; }
+        }
+        .site-footer { background: var(--charcoal); color: var(--cream); text-align: center; padding: 2rem; margin-top: 3rem; }
+        .site-footer a { color: var(--mustard); text-decoration: none; }
+        .site-footer a:hover { text-decoration: underline; }
+        .footer-divider { color: rgba(255,255,255,0.3); margin: 0 1rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container-wide">
+            <a href="../index.html" class="logo">
+                <div class="logo-mark">M</div>
+                MarkdownAPI
+            </a>
+            <nav class="main-nav">
+                <a href="../getting-started.html" class="active">Getting Started</a>
+                <a href="../index.html#why-llms">Why MAPI</a>
+                <a href="../specs/mapi-specification-v0.92.html" class="nav-cta">Human Spec</a>
+                <a href="../llm-spec.html" class="nav-cta nav-cta-alt">LLM Spec</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <nav class="breadcrumb">
+            <a href="../getting-started.html">Getting Started</a>
+            <span> / Have an LLM Write Your Spec</span>
+        </nav>
+    </div>
+
+    <main>
+        <section class="page-header">
+            <div class="container">
+                <h1>Have an LLM Write Your Spec</h1>
+                <p class="subtitle">Just give an LLM the Author Reference Card and describe your API. It writes the spec—your API documentation—for you.</p>
+                <p class="terminology-note">Think of it like having AI write your OpenAPI document or Swagger file, but in a format that's easier for both humans and AI to understand.</p>
+            </div>
+        </section>
+
+        <section class="content">
+            <div class="container">
+
+                <h2>It's just a conversation</h2>
+
+                <p>Open Claude, ChatGPT, or any LLM. Attach the reference card and describe what you need:</p>
+
+                <div class="chat-container">
+                    <div class="chat-label">You</div>
+                    <div class="chat-message">
+                        <div class="chat-user">
+                            <div class="chat-avatar user">JS</div>
+                            <div class="chat-bubble user-bubble">
+                                Use this reference card to write a MAPI spec for my task management API.
+                                <div class="file-attachment">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                    </svg>
+                                    MAPI-AUTHOR.md
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chat-label">You (continued)</div>
+                    <div class="chat-message">
+                        <div class="chat-user">
+                            <div class="chat-avatar user">JS</div>
+                            <div class="chat-bubble user-bubble">
+                                Base URL is https://api.taskmaster.io/v1, uses bearer auth.<br><br>
+                                I need: create task, list tasks, get task by ID, update task, and delete task.<br><br>
+                                Tasks have title, description, status (pending/done), and due_date.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chat-label">Claude</div>
+                    <div class="chat-message">
+                        <div class="chat-user">
+                            <div class="chat-avatar ai">C</div>
+                            <div class="chat-bubble">
+                                I'll create a MAPI specification for your task management API following the reference card format...<br><br>
+                                <code style="background: rgba(255,255,255,0.1); color: #E8E0D5;"># Task Management API</code><br><br>
+                                <em style="opacity: 0.7;">[Generates complete spec with all 5 capabilities, TypeScript interfaces, Intentions, etc.]</em>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p>That's it. The reference card teaches the LLM the format. You just describe your API naturally.</p>
+
+                <a href="../specs/MAPI-AUTHOR.md" class="ref-card-link">
+                    <div class="ref-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h4>MAPI Author Reference Card</h4>
+                        <p>Download this and attach it to your chat</p>
+                    </div>
+                </a>
+                <div class="copy-prompt">
+                    <div class="copy-prompt-text">
+                        <span>Fetch this page:</span> https://markdownapi.org/specs/MAPI-AUTHOR.md
+                    </div>
+                    <button class="copy-btn" onclick="copyToClipboard('Fetch this page: https://markdownapi.org/specs/MAPI-AUTHOR.md', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                        </svg>
+                        Copy
+                    </button>
+                </div>
+                <p class="copy-hint">Or paste this prompt directly into your LLM chat</p>
+
+                <h2>Have an OpenAPI spec already?</h2>
+
+                <p>Even easier—just attach both files:</p>
+
+                <div class="chat-container">
+                    <div class="chat-label">You</div>
+                    <div class="chat-message">
+                        <div class="chat-user">
+                            <div class="chat-avatar user">JS</div>
+                            <div class="chat-bubble user-bubble">
+                                Convert this OpenAPI spec to MAPI format using the conversion reference card.
+                                <div class="file-attachment">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                    </svg>
+                                    OPENAPI-TO-MAPI.md
+                                </div>
+                                <div class="file-attachment">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                    </svg>
+                                    openapi.yaml
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h2>Iterate naturally</h2>
+
+                <p>If something's not right, just ask:</p>
+
+                <ul>
+                    <li>"The Intentions are too generic—make them explain when to use each capability"</li>
+                    <li>"Add a Logic Constraint that due_date must be in the future"</li>
+                    <li>"I forgot to mention there's also a bulk delete endpoint"</li>
+                </ul>
+
+                <div class="callout">
+                    <div class="callout-title">Tip</div>
+                    <p>The more context you give about your API, the better the spec. Business rules, edge cases, authentication quirks—anything the LLM knows, it can document.</p>
+                </div>
+
+                <div class="next-steps">
+                    <h3>Next steps</h3>
+                    <div class="next-links">
+                        <a href="from-openapi.html" class="next-link">Convert from OpenAPI</a>
+                        <a href="validation.html" class="next-link">Validate the output</a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 MAPI Project <span class="footer-divider">|</span> <a href="../authors.html">The Authors</a></p>
+    </footer>
+
+    <script>
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text).then(function() {
+                btn.classList.add('copied');
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg> Copied!';
+                setTimeout(function() {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg> Copy';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

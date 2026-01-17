@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Authors | MAPI - Markdown API</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mustard: #D4A03E;
+            --burnt-orange: #C85D3E;
+            --teal: #2A7B7B;
+            --olive: #5E7153;
+            --cream: #FAF7F2;
+            --charcoal: #2D2D2D;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            background-color: var(--cream);
+            color: var(--charcoal);
+            line-height: 1.7;
+        }
+
+        /* Navigation */
+        .main-nav {
+            background: var(--charcoal);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: var(--cream);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--cream);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--mustard);
+        }
+
+        .main-nav a.nav-cta {
+            background: var(--teal);
+            color: var(--cream);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.3s ease;
+        }
+
+        .main-nav a.nav-cta:hover {
+            background: #1E5959;
+        }
+
+        .main-nav a.nav-cta-alt {
+            background: var(--burnt-orange);
+        }
+
+        .main-nav a.nav-cta-alt:hover {
+            background: #A84D32;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--charcoal) 0%, #1a1a1a 100%);
+            color: var(--cream);
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            color: var(--burnt-orange);
+        }
+
+        .hero .subtitle {
+            font-size: 1.4rem;
+            color: var(--mustard);
+            font-style: italic;
+        }
+
+        /* Main Content */
+        .content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .story-section {
+            background: white;
+            border-radius: 12px;
+            padding: 3rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-left: 5px solid var(--teal);
+        }
+
+        .story-section h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            color: var(--charcoal);
+            margin-bottom: 1.5rem;
+        }
+
+        .story-section p {
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        /* Wanted Posters */
+        .wanted-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+            margin: 3rem 0;
+        }
+
+        .wanted-poster {
+            background: #F5E6C8;
+            border: 8px solid #8B4513;
+            border-radius: 4px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            transform: rotate(-1deg);
+            position: relative;
+        }
+
+        .wanted-poster:nth-child(2) {
+            transform: rotate(1.5deg);
+        }
+
+        .wanted-poster::before {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 30px;
+            background: #8B4513;
+            border-radius: 2px;
+        }
+
+        .wanted-header {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            color: #8B4513;
+            letter-spacing: 8px;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+        }
+
+        .wanted-subheader {
+            font-size: 0.9rem;
+            color: #5C4033;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .wanted-photo {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border: 4px solid #5C4033;
+            margin: 1rem auto;
+            display: block;
+            filter: sepia(30%);
+        }
+
+        .wanted-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            color: #8B4513;
+            margin: 1rem 0 0.5rem;
+        }
+
+        .wanted-alias {
+            font-style: italic;
+            color: #5C4033;
+            margin-bottom: 1rem;
+        }
+
+        .wanted-reward {
+            background: #8B4513;
+            color: #F5E6C8;
+            padding: 0.5rem 1rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: inline-block;
+            margin-top: 0.5rem;
+        }
+
+        /* Warning Box */
+        .warning-box {
+            background: linear-gradient(135deg, var(--burnt-orange) 0%, #A84D32 100%);
+            color: var(--cream);
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .warning-box h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            background: var(--charcoal);
+            color: var(--cream);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .disclaimer h3 {
+            font-family: 'Playfair Display', serif;
+            color: var(--mustard);
+            margin-bottom: 1rem;
+        }
+
+        .disclaimer p {
+            font-size: 1.1rem;
+            font-style: italic;
+        }
+
+        /* Footer */
+        .site-footer {
+            background: var(--charcoal);
+            color: var(--cream);
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .site-footer a {
+            color: var(--mustard);
+            text-decoration: none;
+        }
+
+        .site-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-divider {
+            color: rgba(255,255,255,0.3);
+            margin: 0 1rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="main-nav">
+        <a href="index.html" class="nav-logo">MAPI</a>
+        <div class="nav-links">
+            <a href="getting-started.html">Getting Started</a>
+            <a href="specs/mapi-specification-v0.92.html" class="nav-cta">Human Spec</a>
+            <a href="llm-spec.html" class="nav-cta nav-cta-alt">LLM Spec</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <h1>The Authors</h1>
+        <p class="subtitle">A tale of two renegades who dared to simplify API documentation</p>
+    </section>
+
+    <main class="content">
+        <section class="story-section">
+            <h2>Chapter 1: The Austin Origins</h2>
+            <p>It all started in Austin, Texas, where the breakfast tacos flow freely and the tech meetups never end. Two souls, drawn together by a shared love of Java and open technologies, found themselves at a particularly rowdy SXSW afterparty in 2008.</p>
+            <p>One was pitching the merits of RESTful architecture to a confused bartender. The other was drawing UML diagrams on cocktail napkins. It was love at first semicolon.</p>
+            <p>Together, they embarked on outrageous adventures across the Austin startup scene. They listened to pitches about blockchain-powered dog walking apps, AI-driven artisanal pickle optimization platforms, and at least seventeen different "Uber for X" concepts. Through it all, they brought sanity to startup teams who had lost their way in a forest of over-engineered microservices.</p>
+        </section>
+
+        <div class="wanted-section">
+            <div class="wanted-poster">
+                <div class="wanted-header">WANTED</div>
+                <div class="wanted-subheader">For Crimes Against Complexity</div>
+                <img src="Geofredo.png" alt="Geofredo" class="wanted-photo">
+                <div class="wanted-name">Geofredo</div>
+                <div class="wanted-alias">a.k.a. "The Simplifier"</div>
+                <div class="wanted-reward">REWARD: One Valid OpenAPI Spec</div>
+            </div>
+            <div class="wanted-poster">
+                <div class="wanted-header">WANTED</div>
+                <div class="wanted-subheader">For Markdown Mischief</div>
+                <img src="Jaime.png" alt="Jaime" class="wanted-photo">
+                <div class="wanted-name">Jaime</div>
+                <div class="wanted-alias">a.k.a. "The Documentation Desperado"</div>
+                <div class="wanted-reward">REWARD: One Properly Nested YAML File</div>
+            </div>
+        </div>
+
+        <section class="story-section">
+            <h2>Chapter 2: The Great Escape</h2>
+            <p>Word travels fast in the API community. When rumors spread that two mad geniuses were working on a format that could replace thousands of lines of YAML with simple, readable Markdown, the establishment took notice.</p>
+            <p>First came the strongly-worded GitHub issues. Then the passive-aggressive tweets. Finally, a formal delegation from the OpenAPI Initiative showed up at their favorite taco truck, demanding answers.</p>
+            <p>"You can't just... make things simple," they sputtered. "Where's the ceremony? The nested brackets? The existential dread of a missing comma on line 4,847?"</p>
+        </section>
+
+        <div class="warning-box">
+            <h3>CURRENT STATUS: IN HIDING</h3>
+            <p>The authors are currently believed to be somewhere in the mountains of Colorado, subsisting on craft beer and the satisfaction of a clean, human-readable specification format. A posse consisting of disgruntled OpenAPI committee members and a surprisingly angry contingent from Postman continues to search for them.</p>
+        </div>
+
+        <section class="story-section">
+            <h2>Chapter 3: The Promise</h2>
+            <p>From their undisclosed location (somewhere between Breckenridge and Boulder, near excellent hiking trails), the authors have issued this statement:</p>
+            <blockquote style="border-left: 4px solid var(--mustard); padding-left: 1.5rem; margin: 1.5rem 0; font-style: italic; font-size: 1.2rem;">
+                "We shall emerge from hiding once we witness significant adoption of MAPI across the developer community. When API documentation is finally readable by both humans AND machines without requiring a PhD in YAML archaeology, we will return. Until then, we remain in the shadows, writing Markdown and dreaming of a simpler world."
+            </blockquote>
+            <p>They've asked that supporters leave signs of adoption (GitHub stars, tweets, passive-aggressive Slack messages to their DevOps teams) as signals that the coast is clear.</p>
+        </section>
+
+        <div class="disclaimer">
+            <h3>Official Legal Disclaimer</h3>
+            <p>The authors wish to clearly state that there MAY or MAY NOT be any relation to Satoshi Nakamoto. They can neither confirm nor deny any involvement in cryptocurrency, though they do find it suspicious that Bitcoin's whitepaper was also written in a remarkably readable format. Coincidence? They're not saying.</p>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 MAPI Project <span class="footer-divider">|</span> <a href="authors.html">The Authors</a></p>
+    </footer>
+</body>
+</html>

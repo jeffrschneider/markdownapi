@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Write by Hand - Markdown API (MAPI)</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root { --mustard: #D4A03E; --burnt-orange: #C85D3E; --teal: #2A7B7B; --olive: #5E7153; --cream: #FAF7F2; --warm-white: #FFFEF9; --charcoal: #2D2D2D; --light-charcoal: #4A4A4A; --sand: #E8E0D5; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Space Grotesk', sans-serif; background-color: var(--cream); color: var(--charcoal); line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 2rem; }
+        .container-wide { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+        header { padding: 1.5rem 0; }
+        header .container-wide { display: flex; align-items: center; justify-content: space-between; }
+        .logo { font-size: 1.25rem; font-weight: 600; color: var(--teal); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
+        .logo-mark { width: 32px; height: 32px; background: var(--burnt-orange); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem; }
+        .main-nav { display: flex; align-items: center; gap: 2rem; }
+        .main-nav a { text-decoration: none; color: var(--light-charcoal); font-size: 0.95rem; font-weight: 500; transition: color 0.2s ease; }
+        .main-nav a:hover, .main-nav a.active { color: var(--teal); }
+        .main-nav a.nav-cta { background: var(--teal); color: white; padding: 0.6rem 1.25rem; border-radius: 8px; }
+        .main-nav a.nav-cta:hover { background: #237070; color: white; }
+        .main-nav a.nav-cta-alt { background: var(--burnt-orange); }
+        .main-nav a.nav-cta-alt:hover { background: #A84D32; }
+        .breadcrumb { padding: 1rem 0; font-size: 0.9rem; }
+        .breadcrumb a { color: var(--teal); text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb span { color: var(--light-charcoal); }
+        .page-header { padding: 2rem 0 3rem; }
+        .page-header h1 { font-family: 'Source Serif 4', Georgia, serif; font-size: 2.75rem; font-weight: 600; color: var(--charcoal); margin-bottom: 1rem; }
+        .page-header .subtitle { font-size: 1.2rem; color: var(--light-charcoal); max-width: 700px; line-height: 1.7; }
+        .content { padding: 2rem 0 5rem; }
+        .content h2 { font-family: 'Source Serif 4', Georgia, serif; font-size: 1.75rem; font-weight: 600; color: var(--charcoal); margin: 3rem 0 1.25rem; }
+        .content h2:first-child { margin-top: 0; }
+        .content h3 { font-size: 1.15rem; font-weight: 600; color: var(--charcoal); margin: 2rem 0 0.75rem; }
+        .content p { font-size: 1.05rem; color: var(--light-charcoal); line-height: 1.75; margin-bottom: 1.25rem; }
+        .content ul, .content ol { margin: 0 0 1.5rem 1.5rem; color: var(--light-charcoal); }
+        .content li { font-size: 1.05rem; line-height: 1.75; margin-bottom: 0.5rem; }
+        .content strong { color: var(--charcoal); font-weight: 600; }
+        .code-block { background: var(--charcoal); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0 2rem; overflow-x: auto; }
+        .code-block pre { margin: 0; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.875rem; line-height: 1.7; color: #E8E0D5; }
+        .code-block .comment { color: #6A9955; }
+        .code-block .keyword { color: #C586C0; }
+        .code-block .string { color: #CE9178; }
+        .code-block .type { color: #4EC9B0; }
+        .code-block .property { color: #9CDCFE; }
+        .code-block .meta { color: #D4A03E; }
+        .code-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .code-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .code-dot.red { background: #FF5F56; }
+        .code-dot.yellow { background: #FFBD2E; }
+        .code-dot.green { background: #27C93F; }
+        .code-title { margin-left: 0.75rem; font-size: 0.8rem; color: #888; }
+        code { background: var(--sand); padding: 0.15rem 0.4rem; border-radius: 4px; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.9em; color: var(--burnt-orange); }
+        .callout { background: var(--warm-white); border-left: 4px solid var(--teal); border-radius: 0 12px 12px 0; padding: 1.25rem 1.5rem; margin: 1.5rem 0; }
+        .callout.tip { border-left-color: var(--olive); }
+        .callout.warning { border-left-color: var(--mustard); }
+        .callout-title { font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; color: var(--teal); }
+        .callout.tip .callout-title { color: var(--olive); }
+        .callout.warning .callout-title { color: var(--mustard); }
+        .callout p { margin-bottom: 0; font-size: 0.95rem; }
+        .ref-card-link { display: flex; align-items: center; gap: 1rem; background: var(--warm-white); border: 2px solid var(--teal); border-radius: 12px; padding: 1.25rem 1.5rem; text-decoration: none; color: inherit; margin: 2rem 0; transition: all 0.2s ease; }
+        .ref-card-link:hover { background: var(--teal); color: white; }
+        .ref-card-link:hover .ref-icon { background: rgba(255,255,255,0.2); }
+        .ref-card-link:hover .ref-icon svg { color: white; }
+        .ref-card-link:hover p { color: rgba(255,255,255,0.9); }
+        .ref-icon { width: 48px; height: 48px; background: var(--sand); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ref-icon svg { width: 24px; height: 24px; color: var(--teal); }
+        .ref-card-link h4 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
+        .ref-card-link p { font-size: 0.85rem; margin: 0; color: var(--light-charcoal); }
+        /* Copy prompt box */
+        .copy-prompt { background: var(--charcoal); border-radius: 10px; padding: 1rem 1.25rem; margin-top: 0.75rem; display: flex; align-items: center; gap: 1rem; }
+        .copy-prompt-text { flex: 1; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem; color: #E8E0D5; word-break: break-all; }
+        .copy-prompt-text span { color: var(--mustard); }
+        .copy-btn { background: var(--teal); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s ease; white-space: nowrap; }
+        .copy-btn:hover { background: #237070; }
+        .copy-btn svg { width: 16px; height: 16px; }
+        .copy-btn.copied { background: var(--olive); }
+        .copy-hint { font-size: 0.8rem; color: var(--light-charcoal); margin-top: 0.5rem; font-style: italic; }
+        .comparison { width: 100%; border-collapse: collapse; margin: 1.5rem 0 2rem; font-size: 0.95rem; }
+        .comparison th, .comparison td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--sand); }
+        .comparison th { background: var(--warm-white); font-weight: 600; color: var(--charcoal); }
+        .comparison td { color: var(--light-charcoal); }
+        .comparison code { font-size: 0.85em; }
+        .next-steps { background: var(--sand); border-radius: 16px; padding: 2rem; margin-top: 3rem; }
+        .next-steps h3 { margin-top: 0; margin-bottom: 1rem; }
+        .next-links { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .next-link { background: var(--warm-white); padding: 0.75rem 1.25rem; border-radius: 8px; text-decoration: none; color: var(--charcoal); font-weight: 500; font-size: 0.95rem; transition: all 0.2s ease; }
+        .next-link:hover { background: var(--teal); color: white; }
+        @media (max-width: 600px) { .main-nav a:not(.nav-cta) { display: none; } .page-header h1 { font-size: 2rem; } }
+        .site-footer { background: var(--charcoal); color: var(--cream); text-align: center; padding: 2rem; margin-top: 3rem; }
+        .site-footer a { color: var(--mustard); text-decoration: none; }
+        .site-footer a:hover { text-decoration: underline; }
+        .footer-divider { color: rgba(255,255,255,0.3); margin: 0 1rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container-wide">
+            <a href="../index.html" class="logo"><div class="logo-mark">M</div>MarkdownAPI</a>
+            <nav class="main-nav">
+                <a href="../getting-started.html" class="active">Getting Started</a>
+                <a href="../index.html#why-llms">Why MAPI</a>
+                <a href="../specs/mapi-specification-v0.92.html" class="nav-cta">Human Spec</a>
+                <a href="../llm-spec.html" class="nav-cta nav-cta-alt">LLM Spec</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <nav class="breadcrumb">
+            <a href="../getting-started.html">Getting Started</a>
+            <span> / Write by Hand</span>
+        </nav>
+    </div>
+
+    <main>
+        <section class="page-header">
+            <div class="container">
+                <h1>Write by Hand</h1>
+                <p class="subtitle">Sometimes you want full control. Learn the MAPI format and write specifications manually in any text editor.</p>
+            </div>
+        </section>
+
+        <section class="content">
+            <div class="container">
+
+                <div class="callout warning">
+                    <div class="callout-title">Consider LLM-assisted authoring first</div>
+                    <p>For most cases, <a href="llm-authoring.html">having an LLM write your spec</a> is faster and produces equally good results. Manual authoring makes sense when you want precise control, are learning the format, or don't have LLM access.</p>
+                </div>
+
+                <h2>The structure</h2>
+
+                <p>Every MAPI document has three parts:</p>
+
+                <ol>
+                    <li><strong>Document header</strong> — Title, description, and metadata</li>
+                    <li><strong>Global types</strong> (optional) — Shared TypeScript interfaces</li>
+                    <li><strong>Capabilities</strong> — One section per API operation</li>
+                </ol>
+
+                <p>The Author Reference Card has the complete format. Keep it open as you write.</p>
+
+                <a href="../specs/MAPI-AUTHOR.md" class="ref-card-link">
+                    <div class="ref-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h4>MAPI Author Reference Card</h4>
+                        <p>Complete format reference — skeletons, patterns, and examples</p>
+                    </div>
+                </a>
+                <div class="copy-prompt">
+                    <div class="copy-prompt-text">
+                        <span>Fetch this page:</span> https://markdownapi.org/specs/MAPI-AUTHOR.md
+                    </div>
+                    <button class="copy-btn" onclick="copyToClipboard('Fetch this page: https://markdownapi.org/specs/MAPI-AUTHOR.md', this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>
+                        Copy
+                    </button>
+                </div>
+                <p class="copy-hint">Or paste this prompt directly into your LLM chat</p>
+
+                <h2>Document header</h2>
+
+                <p>Start with a title (H1), description, and metadata block:</p>
+
+                <div class="code-block">
+                    <pre><span class="comment"># Your API Name</span>
+
+A clear description of what this API does and who it's for.
+One to three sentences is usually enough.
+
+<span class="meta">~~~meta</span>
+<span class="property">version</span>: 1.0.0
+<span class="property">base_url</span>: https://api.example.com/v1
+<span class="property">auth</span>: bearer
+<span class="meta">~~~</span></pre>
+                </div>
+
+                <table class="comparison">
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Required</th>
+                            <th>Values</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>version</code></td>
+                            <td>Yes</td>
+                            <td>Semantic version (e.g., <code>1.0.0</code>)</td>
+                        </tr>
+                        <tr>
+                            <td><code>base_url</code></td>
+                            <td>Yes</td>
+                            <td>Root URL for all endpoints</td>
+                        </tr>
+                        <tr>
+                            <td><code>auth</code></td>
+                            <td>Yes</td>
+                            <td><code>bearer</code>, <code>api_key</code>, <code>basic</code>, <code>oauth2</code>, <code>none</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h2>Capabilities</h2>
+
+                <p>Each API operation is a capability. Separate them with <code>---</code>:</p>
+
+                <div class="code-block">
+                    <pre><span class="comment">---</span>
+
+<span class="comment">## Capability: Create User</span>
+
+<span class="meta">~~~meta</span>
+<span class="property">id</span>: users.create
+<span class="property">transport</span>: HTTP POST /users
+<span class="meta">~~~</span>
+
+<span class="keyword">### Intention</span>
+
+Create a new user account. Use this when onboarding a new customer.
+The email must be unique; attempting to create a duplicate returns 409.
+
+<span class="keyword">### Logic Constraints</span>
+
+- Email addresses are case-insensitive and normalized to lowercase
+- Password must be at least 8 characters with one number
+- If `send_welcome_email` is true, an email is queued (not sent synchronously)
+
+<span class="keyword">### Input</span>
+
+```typescript
+<span class="keyword">interface</span> <span class="type">CreateUserRequest</span> {
+  <span class="property">email</span>: <span class="type">string</span>;           <span class="comment">// required, format: email</span>
+  <span class="property">password</span>: <span class="type">string</span>;        <span class="comment">// required, length: 8-128</span>
+  <span class="property">name</span>?: <span class="type">string</span>;           <span class="comment">// length: 1-100</span>
+  <span class="property">send_welcome_email</span>?: <span class="type">boolean</span>;  <span class="comment">// default: true</span>
+}
+```
+
+<span class="keyword">### Output</span>
+
+<span class="meta">~~~response 200</span>
+```typescript
+<span class="keyword">interface</span> <span class="type">User</span> {
+  <span class="property">id</span>: <span class="type">string</span>;
+  <span class="property">email</span>: <span class="type">string</span>;
+  <span class="property">name</span>: <span class="type">string</span> | <span class="type">null</span>;
+  <span class="property">created_at</span>: <span class="type">string</span>;  <span class="comment">// ISO 8601</span>
+}
+```
+<span class="meta">~~~</span>
+
+<span class="meta">~~~response 409</span>
+```typescript
+<span class="keyword">interface</span> <span class="type">ConflictError</span> {
+  <span class="property">error</span>: <span class="string">'email_exists'</span>;
+  <span class="property">message</span>: <span class="type">string</span>;
+}
+```
+<span class="meta">~~~</span>
+
+> Errors: standard (400, 401, 429, 500)</pre>
+                </div>
+
+                <h2>Transport strings</h2>
+
+                <table class="comparison">
+                    <thead>
+                        <tr>
+                            <th>Pattern</th>
+                            <th>Meaning</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>HTTP GET /path</code></td>
+                            <td>GET request</td>
+                        </tr>
+                        <tr>
+                            <td><code>HTTP POST /path</code></td>
+                            <td>POST request</td>
+                        </tr>
+                        <tr>
+                            <td><code>HTTP GET /path/{id}</code></td>
+                            <td>Path parameter</td>
+                        </tr>
+                        <tr>
+                            <td><code>HTTP POST /path (SSE)</code></td>
+                            <td>Server-Sent Events stream</td>
+                        </tr>
+                        <tr>
+                            <td><code>WS /path</code></td>
+                            <td>WebSocket</td>
+                        </tr>
+                        <tr>
+                            <td><code>INTERNAL</code></td>
+                            <td>Client-side only, no network</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h2>Constraint comments</h2>
+
+                <p>Add constraints as TypeScript comments:</p>
+
+                <table class="comparison">
+                    <thead>
+                        <tr>
+                            <th>Pattern</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>// required</code></td>
+                            <td><code>name: string; // required</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>// range: min-max</code></td>
+                            <td><code>age: number; // range: 0-150</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>// length: min-max</code></td>
+                            <td><code>title: string; // length: 1-200</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>// default: value</code></td>
+                            <td><code>page?: number; // default: 1</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>// format: type</code></td>
+                            <td><code>email: string; // format: email</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="callout tip">
+                    <div class="callout-title">Writing good Intentions</div>
+                    <p>Don't just describe what the endpoint does—explain <em>when</em> to use it and <em>why</em>. "Creates a user" is useless. "Create a new user account during customer onboarding. Email must be unique." tells the reader (human or LLM) what they need to know.</p>
+                </div>
+
+                <h2>Validate your work</h2>
+
+                <p>After writing, run your spec through <a href="validation.html">validation</a> to catch structural issues before they cause problems.</p>
+
+                <div class="next-steps">
+                    <h3>Next steps</h3>
+                    <div class="next-links">
+                        <a href="validation.html" class="next-link">Validate your spec</a>
+                        <a href="llm-authoring.html" class="next-link">LLM-assisted authoring</a>
+                        <a href="to-openapi.html" class="next-link">Export to OpenAPI</a>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>&copy; 2026 MAPI Project <span class="footer-divider">|</span> <a href="../authors.html">The Authors</a></p>
+    </footer>
+
+    <script>
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text).then(function() {
+                btn.classList.add('copied');
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg> Copied!';
+                setTimeout(function() {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg> Copy';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
