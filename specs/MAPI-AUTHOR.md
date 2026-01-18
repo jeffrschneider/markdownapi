@@ -119,7 +119,59 @@ interface ConflictError {
 | `HTTP GET /path/{id}` | Path parameter |
 | `HTTP POST /path (SSE)` | Server-Sent Events |
 | `WS /path` | WebSocket |
+| `WEBHOOK POST {callback_url}` | Outbound webhook to client URL |
 | `INTERNAL` | Client-side, no network |
+
+## Webhooks
+
+For outbound API callbacks, use the `WEBHOOK` transport:
+
+```markdown
+## Webhook: Event Name
+
+~~~meta
+id: webhooks.event_name
+transport: WEBHOOK POST {callback_url}
+~~~
+
+### Intention
+Describe when the API sends this webhook.
+
+### Output
+` ` `typescript
+interface WebhookPayload {
+  event: "event.name";
+  payload: { ... };
+  signature: string;  // HMAC-SHA256 verification
+}
+` ` `
+
+### Logic Constraints
+- Include signature verification details
+- Document retry behavior
+```
+
+## File Uploads & Binary Downloads
+
+For **multipart uploads**, set `content_type: multipart/form-data`:
+
+```markdown
+~~~meta
+id: files.upload
+transport: HTTP POST /upload
+content_type: multipart/form-data
+~~~
+```
+
+Document file constraints in Logic Constraints (max size, allowed formats, field names).
+
+For **binary downloads**, describe the response content type in Output:
+
+```markdown
+### Output
+Returns raw file bytes.
+Content-Type: `application/octet-stream` or original MIME type.
+```
 
 ## Common Mistakes
 
@@ -132,4 +184,4 @@ interface ConflictError {
 
 **Wrong card?** See [MAPI-DISCLOSURE.md](MAPI-DISCLOSURE.md) to find the right resource.
 
-**Need more detail?** See the full [MAPI Specification](MAPI-SPECIFICATION-v0.92.md).
+**Need more detail?** See the full [MAPI Specification](mapi-specification-v0.93.md).

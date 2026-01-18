@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAPI Specification v0.92 - Markdown API</title>
+    <title>MAPI Specification v0.93 - Markdown API</title>
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -630,7 +630,7 @@
     <div class="mobile-menu" id="mobileMenu">
         <a href="../index.html">Home</a>
         <a href="../getting-started.html">Getting Started</a>
-        <a href="mapi-specification-v0.92.html" class="nav-cta">Human Spec</a>
+        <a href="mapi-specification-v0.93.html" class="nav-cta">Human Spec</a>
         <a href="../llm-spec.html" class="nav-cta nav-cta-alt">LLM Spec</a>
     </div>
 
@@ -646,11 +646,12 @@
                 <a href="#error-handling">6. Error Handling</a>
                 <a href="#streaming-events">7. Streaming and Events</a>
                 <a href="#websocket-channels">8. WebSocket Channels</a>
-                <a href="#internal-tools">9. Internal Tools</a>
-                <a href="#collections">10. Collections and File Organization</a>
-                <a href="#conversion">11. Conversion from OpenAPI/AsyncAPI</a>
-                <a href="#progressive-disclosure">12. Progressive Disclosure</a>
-                <a href="#complete-examples">13. Complete Examples</a>
+                <a href="#webhooks">9. Webhooks</a>
+                <a href="#internal-tools">10. Internal Tools</a>
+                <a href="#collections">11. Collections and File Organization</a>
+                <a href="#conversion">12. Conversion from OpenAPI/AsyncAPI</a>
+                <a href="#progressive-disclosure">13. Progressive Disclosure</a>
+                <a href="#complete-examples">14. Complete Examples</a>
                 <a href="#appendix-a" class="appendix">Appendix A: Constraint Reference</a>
                 <a href="#appendix-b">Appendix B: Transport Strings</a>
                 <a href="#appendix-c">Appendix C: Standard Errors</a>
@@ -660,7 +661,7 @@
         <main class="spec-content">
             <div class="spec-title-block">
                 <h1>Markdown API</h1>
-                <div class="version">(MAPI) Specification v0.92</div>
+                <div class="version">(MAPI) Specification v0.93</div>
                 <div class="draft">Draft — January 2026</div>
                 <p class="tagline">A Human, Machine, and Agent Readable API Description Format</p>
                 <p class="credit">Synthesized from collaborative design between Claude (Anthropic) and Gemini (Google)</p>
@@ -681,11 +682,12 @@
                     <a href="#error-handling">6. Error Handling</a>
                     <a href="#streaming-events">7. Streaming and Events</a>
                     <a href="#websocket-channels">8. WebSocket Channels</a>
-                    <a href="#internal-tools">9. Internal Tools</a>
-                    <a href="#collections">10. Collections and File Organization</a>
-                    <a href="#conversion">11. Conversion from OpenAPI/AsyncAPI</a>
-                    <a href="#progressive-disclosure">12. Progressive Disclosure</a>
-                    <a href="#complete-examples">13. Complete Examples</a>
+                    <a href="#webhooks">9. Webhooks</a>
+                    <a href="#internal-tools">10. Internal Tools</a>
+                    <a href="#collections">11. Collections and File Organization</a>
+                    <a href="#conversion">12. Conversion from OpenAPI/AsyncAPI</a>
+                    <a href="#progressive-disclosure">13. Progressive Disclosure</a>
+                    <a href="#complete-examples">14. Complete Examples</a>
                     <a href="#appendix-a" class="appendix">Appendix A: Constraint Reference</a>
                     <a href="#appendix-b">Appendix B: Transport Strings</a>
                     <a href="#appendix-c">Appendix C: Standard Errors</a>
@@ -829,7 +831,7 @@ Brief description of the API and its purpose.
                     </tr>
                     <tr>
                         <td><code>content_type</code></td>
-                        <td>Default content type (default: application/json)</td>
+                        <td>Default content type (default: application/json). Use <code>multipart/form-data</code> for file uploads or <code>application/octet-stream</code> for binary data.</td>
                         <td>No</td>
                     </tr>
                     <tr>
@@ -887,6 +889,54 @@ Brief description of the API and its purpose.
                     </tr>
                 </tbody>
             </table>
+
+            <h3><span class="subsection-num">2.3</span> Multipart Uploads and Binary Content</h3>
+            <p>For file uploads, set <code>content_type</code> to <code>multipart/form-data</code> and describe file fields in Logic Constraints:</p>
+
+            <span class="code-label">Multipart File Upload</span>
+            <div class="code-block">
+<pre><span class="meta">## Capability: Upload Document</span>
+
+<span class="keyword">~~~meta</span>
+<span class="property">id:</span> <span class="string">documents.upload</span>
+<span class="property">transport:</span> <span class="string">HTTP POST /documents</span>
+<span class="property">content_type:</span> <span class="string">multipart/form-data</span>
+<span class="keyword">~~~</span>
+
+<span class="meta">### Input</span>
+<span class="keyword">```typescript</span>
+<span class="keyword">interface</span> <span class="type">UploadDocumentRequest</span> {
+  <span class="property">file</span>: <span class="type">File</span>;           <span class="comment">// The document file</span>
+  <span class="property">title</span>: <span class="type">string</span>;
+  <span class="property">tags</span>?: <span class="type">string</span>[];
+}
+<span class="keyword">```</span>
+
+<span class="meta">### Logic Constraints</span>
+- <span class="property">file</span> must be PDF, DOCX, or TXT format
+- Maximum file size: 10MB
+- <span class="property">file</span> field name in multipart body: <span class="string">"document"</span></pre>
+            </div>
+
+            <p>For binary downloads, specify <code>application/octet-stream</code> in the Output section:</p>
+
+            <span class="code-label">Binary Download</span>
+            <div class="code-block">
+<pre><span class="meta">## Capability: Download File</span>
+
+<span class="keyword">~~~meta</span>
+<span class="property">id:</span> <span class="string">files.download</span>
+<span class="property">transport:</span> <span class="string">HTTP GET /files/{file_id}/content</span>
+<span class="keyword">~~~</span>
+
+<span class="meta">### Output</span>
+Returns the raw file bytes with appropriate <span class="property">Content-Type</span> header.
+Response content type: <span class="string">application/octet-stream</span> (or original file MIME type)
+
+<span class="meta">### Logic Constraints</span>
+- <span class="property">Content-Disposition</span> header contains the original filename
+- Large files may use chunked transfer encoding</pre>
+            </div>
 
             <h2 id="global-types"><span class="section-num">3</span> Global Types</h2>
             <p>The Global Types section defines reusable TypeScript interfaces that are referenced throughout the specification. This reduces repetition and establishes a consistent vocabulary.</p>
@@ -1150,7 +1200,68 @@ Establishes a persistent connection for real-time updates.
 <span class="keyword">```</span></pre>
             </div>
 
-            <h2 id="internal-tools"><span class="section-num">9</span> Internal Tools</h2>
+            <h2 id="webhooks"><span class="section-num">9</span> Webhooks</h2>
+            <p>Webhooks describe outbound HTTP calls that the API makes to client-provided URLs when events occur. Use the <code>WEBHOOK</code> transport to document these callback patterns.</p>
+
+            <h3><span class="subsection-num">9.1</span> Webhook Structure</h3>
+            <p>Webhooks use a similar structure to capabilities but describe what the API sends rather than what it receives:</p>
+
+            <div class="code-block">
+<pre><span class="meta">## Webhook: Payment Completed</span>
+
+<span class="keyword">~~~meta</span>
+<span class="property">id:</span> <span class="string">webhooks.payment_completed</span>
+<span class="property">transport:</span> <span class="string">WEBHOOK POST {callback_url}</span>
+<span class="keyword">~~~</span>
+
+<span class="meta">### Intention</span>
+Sent to your registered endpoint when a payment succeeds. Register webhook
+URLs through the Dashboard or the webhooks.register capability.
+
+<span class="meta">### Output</span>
+<span class="keyword">```typescript</span>
+<span class="keyword">interface</span> <span class="type">PaymentWebhookPayload</span> {
+  <span class="property">event</span>: <span class="string">"payment.completed"</span>;
+  <span class="property">payload</span>: {
+    <span class="property">payment_id</span>: <span class="type">string</span>;
+    <span class="property">amount</span>: <span class="type">number</span>;
+    <span class="property">currency</span>: <span class="type">string</span>;
+    <span class="property">customer_id</span>: <span class="type">string</span>;
+  };
+  <span class="property">timestamp</span>: <span class="type">ISO8601</span>;
+  <span class="property">signature</span>: <span class="type">string</span>;  <span class="comment">// HMAC-SHA256 for verification</span>
+}
+<span class="keyword">```</span>
+
+<span class="meta">### Logic Constraints</span>
+- Webhook requests include <span class="property">X-Signature</span> header for payload verification
+- Signature is HMAC-SHA256 of the raw request body using your webhook secret
+- Requests timeout after 30 seconds; implement async processing for long tasks
+- Failed deliveries retry with exponential backoff (1min, 5min, 30min, 2hr)</pre>
+            </div>
+
+            <h3><span class="subsection-num">9.2</span> Webhook Registration</h3>
+            <p>Document the capability for registering webhook endpoints:</p>
+
+            <div class="code-block">
+<pre><span class="meta">## Capability: Register Webhook</span>
+
+<span class="keyword">~~~meta</span>
+<span class="property">id:</span> <span class="string">webhooks.register</span>
+<span class="property">transport:</span> <span class="string">HTTP POST /webhooks</span>
+<span class="keyword">~~~</span>
+
+<span class="meta">### Input</span>
+<span class="keyword">```typescript</span>
+<span class="keyword">interface</span> <span class="type">RegisterWebhookRequest</span> {
+  <span class="property">url</span>: <span class="type">string</span>;         <span class="comment">// HTTPS endpoint to receive events</span>
+  <span class="property">events</span>: <span class="type">string</span>[];     <span class="comment">// Event types to subscribe to</span>
+  <span class="property">secret</span>?: <span class="type">string</span>;      <span class="comment">// Optional; generated if not provided</span>
+}
+<span class="keyword">```</span></pre>
+            </div>
+
+            <h2 id="internal-tools"><span class="section-num">10</span> Internal Tools</h2>
             <p>MAPI can describe client-side or internal operations using the <code>INTERNAL</code> transport:</p>
 
             <div class="code-block">
@@ -1165,10 +1276,10 @@ Establishes a persistent connection for real-time updates.
 Performs mathematical calculations. Use for any arithmetic the agent cannot reliably perform mentally.</pre>
             </div>
 
-            <h2 id="collections"><span class="section-num">10</span> Collections and File Organization</h2>
+            <h2 id="collections"><span class="section-num">11</span> Collections and File Organization</h2>
             <p>Large APIs can be split across multiple files using a collection manifest.</p>
 
-            <h3><span class="subsection-num">10.1</span> Collection Manifest</h3>
+            <h3><span class="subsection-num">11.1</span> Collection Manifest</h3>
 
             <div class="code-block">
 <pre><span class="keyword">~~~collection</span>
@@ -1182,10 +1293,10 @@ Performs mathematical calculations. Use for any arithmetic the agent cannot reli
 <span class="keyword">~~~</span></pre>
             </div>
 
-            <h2 id="conversion"><span class="section-num">11</span> Conversion from OpenAPI/AsyncAPI</h2>
+            <h2 id="conversion"><span class="section-num">12</span> Conversion from OpenAPI/AsyncAPI</h2>
             <p>MAPI documents can be generated from existing OpenAPI or AsyncAPI specifications.</p>
 
-            <h3><span class="subsection-num">11.1</span> OpenAPI Mapping</h3>
+            <h3><span class="subsection-num">12.1</span> OpenAPI Mapping</h3>
 
             <table class="spec-table">
                 <thead>
@@ -1222,10 +1333,10 @@ Performs mathematical calculations. Use for any arithmetic the agent cannot reli
                 </tbody>
             </table>
 
-            <h2 id="progressive-disclosure"><span class="section-num">12</span> Progressive Disclosure</h2>
+            <h2 id="progressive-disclosure"><span class="section-num">13</span> Progressive Disclosure</h2>
             <p>MAPI supports "reference cards"—focused, task-specific subsets of the full specification designed to minimize token usage when working with LLMs.</p>
 
-            <h3><span class="subsection-num">12.1</span> Reference Card Types</h3>
+            <h3><span class="subsection-num">13.1</span> Reference Card Types</h3>
             <ul>
                 <li><strong>Author Card:</strong> For LLMs writing MAPI specs</li>
                 <li><strong>Consumer Card:</strong> For LLMs calling APIs</li>
@@ -1233,7 +1344,7 @@ Performs mathematical calculations. Use for any arithmetic the agent cannot reli
                 <li><strong>Validation Card:</strong> For validating MAPI documents</li>
             </ul>
 
-            <h3><span class="subsection-num">12.2</span> Disclosure Document</h3>
+            <h3><span class="subsection-num">13.2</span> Disclosure Document</h3>
             <p>A disclosure document helps agents determine which reference card to load:</p>
 
             <div class="code-block">
@@ -1248,7 +1359,7 @@ Performs mathematical calculations. Use for any arithmetic the agent cannot reli
 <span class="keyword">~~~</span></pre>
             </div>
 
-            <h2 id="complete-examples"><span class="section-num">13</span> Complete Examples</h2>
+            <h2 id="complete-examples"><span class="section-num">14</span> Complete Examples</h2>
             <p>See the <code>/examples</code> directory for complete MAPI specifications including:</p>
             <ul>
                 <li>Simple REST API (task management)</li>
@@ -1346,6 +1457,11 @@ Performs mathematical calculations. Use for any arithmetic the agent cannot reli
                         <td>WebSocket</td>
                         <td><code>WS /path</code></td>
                         <td><code>WS /ws/realtime</code></td>
+                    </tr>
+                    <tr>
+                        <td>Webhook (outbound)</td>
+                        <td><code>WEBHOOK METHOD {callback_url}</code></td>
+                        <td><code>WEBHOOK POST {callback_url}</code></td>
                     </tr>
                     <tr>
                         <td>Internal/Client-side</td>

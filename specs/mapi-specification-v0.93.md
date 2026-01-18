@@ -1,4 +1,4 @@
-# Markdown API (MAPI) Specification v0.92
+# Markdown API (MAPI) Specification v0.93
 
 **Draft — January 2026**
 
@@ -108,7 +108,7 @@ errors: standard
 | `base_url` | Base URL for all HTTP operations | Yes |
 | `auth` | Authentication type (bearer, api_key, basic, oauth2, none) | Yes |
 | `auth_header` | Header name for auth token (default: Authorization) | No |
-| `content_type` | Default content type (default: application/json) | No |
+| `content_type` | Default content type (default: application/json). Use `multipart/form-data` for file uploads or `application/octet-stream` for binary data. | No |
 | `errors` | Error convention: standard or custom (default: standard) | No |
 
 ### 2.2 Capability-Level Metadata
@@ -129,6 +129,53 @@ idempotent: false
 | `auth` | required, optional, or none | No |
 | `idempotent` | Whether repeated calls are safe | No |
 | `deprecated` | true if operation is deprecated | No |
+
+### 2.3 Multipart Uploads and Binary Content
+
+For file uploads, set `content_type` to `multipart/form-data` and describe file fields in Logic Constraints:
+
+```markdown
+## Capability: Upload Document
+
+~~~meta
+id: documents.upload
+transport: HTTP POST /documents
+content_type: multipart/form-data
+~~~
+
+### Input
+```typescript
+interface UploadDocumentRequest {
+  file: File;           // The document file
+  title: string;
+  tags?: string[];
+}
+```
+
+### Logic Constraints
+- `file` must be PDF, DOCX, or TXT format
+- Maximum file size: 10MB
+- `file` field name in multipart body: "document"
+```
+
+For binary downloads, specify `application/octet-stream` in the Output section:
+
+```markdown
+## Capability: Download File
+
+~~~meta
+id: files.download
+transport: HTTP GET /files/{file_id}/content
+~~~
+
+### Output
+Returns the raw file bytes with appropriate `Content-Type` header.
+Response content type: `application/octet-stream` (or original file MIME type)
+
+### Logic Constraints
+- `Content-Disposition` header contains the original filename
+- Large files may use chunked transfer encoding
+```
 
 ---
 
@@ -340,7 +387,73 @@ type ServerMessage =
 
 ---
 
-## 9. Internal Tools
+## 9. Webhooks
+
+Webhooks describe outbound HTTP calls that the API makes to client-provided URLs when events occur. Use the `WEBHOOK` transport to document these callback patterns.
+
+### 9.1 Webhook Structure
+
+Webhooks use a similar structure to capabilities but describe what the API sends rather than what it receives:
+
+```markdown
+## Webhook: Payment Completed
+
+~~~meta
+id: webhooks.payment_completed
+transport: WEBHOOK POST {callback_url}
+~~~
+
+### Intention
+Sent to your registered endpoint when a payment succeeds. Register webhook
+URLs through the Dashboard or the webhooks.register capability.
+
+### Output
+```typescript
+interface PaymentWebhookPayload {
+  event: "payment.completed";
+  payload: {
+    payment_id: string;
+    amount: number;
+    currency: string;
+    customer_id: string;
+  };
+  timestamp: ISO8601;
+  signature: string;  // HMAC-SHA256 for verification
+}
+```
+
+### Logic Constraints
+- Webhook requests include `X-Signature` header for payload verification
+- Signature is HMAC-SHA256 of the raw request body using your webhook secret
+- Requests timeout after 30 seconds; implement async processing for long tasks
+- Failed deliveries retry with exponential backoff (1min, 5min, 30min, 2hr)
+```
+
+### 9.2 Webhook Registration
+
+Document the capability for registering webhook endpoints:
+
+```markdown
+## Capability: Register Webhook
+
+~~~meta
+id: webhooks.register
+transport: HTTP POST /webhooks
+~~~
+
+### Input
+```typescript
+interface RegisterWebhookRequest {
+  url: string;         // HTTPS endpoint to receive events
+  events: string[];     // Event types to subscribe to
+  secret?: string;      // Optional; generated if not provided
+}
+```
+```
+
+---
+
+## 10. Internal Tools
 
 MAPI can describe client-side or internal operations using the `INTERNAL` transport:
 
@@ -358,11 +471,11 @@ Performs mathematical calculations. Use for any arithmetic the agent cannot reli
 
 ---
 
-## 10. Collections and File Organization
+## 11. Collections and File Organization
 
 Large APIs can be split across multiple files using a collection manifest.
 
-### 10.1 Collection Manifest
+### 11.1 Collection Manifest
 
 ```yaml
 ~~~collection
@@ -378,11 +491,11 @@ shared_types: types/common.mapi.md
 
 ---
 
-## 11. Conversion from OpenAPI/AsyncAPI
+## 12. Conversion from OpenAPI/AsyncAPI
 
 MAPI documents can be generated from existing OpenAPI or AsyncAPI specifications.
 
-### 11.1 OpenAPI Mapping
+### 12.1 OpenAPI Mapping
 
 | OpenAPI | MAPI |
 |---------|------|
@@ -395,18 +508,18 @@ MAPI documents can be generated from existing OpenAPI or AsyncAPI specifications
 
 ---
 
-## 12. Progressive Disclosure
+## 13. Progressive Disclosure
 
 MAPI supports "reference cards"—focused, task-specific subsets of the full specification designed to minimize token usage when working with LLMs.
 
-### 12.1 Reference Card Types
+### 13.1 Reference Card Types
 
 - **Author Card:** For LLMs writing MAPI specs
 - **Consumer Card:** For LLMs calling APIs
 - **Conversion Card:** For converting between formats
 - **Validation Card:** For validating MAPI documents
 
-### 12.2 Disclosure Document
+### 13.2 Disclosure Document
 
 A disclosure document helps agents determine which reference card to load:
 
@@ -424,7 +537,7 @@ cards:
 
 ---
 
-## 13. Complete Examples
+## 14. Complete Examples
 
 See the `/examples` directory for complete MAPI specifications including:
 
@@ -459,6 +572,7 @@ See the `/examples` directory for complete MAPI specifications including:
 | HTTP with path params | `HTTP METHOD /path/{param}` | `HTTP GET /users/{id}` |
 | HTTP with SSE | `HTTP METHOD /path (SSE)` | `HTTP POST /messages (SSE)` |
 | WebSocket | `WS /path` | `WS /ws/realtime` |
+| Webhook (outbound) | `WEBHOOK METHOD {callback_url}` | `WEBHOOK POST {callback_url}` |
 | Internal/Client-side | `INTERNAL` | `INTERNAL` |
 
 ---
