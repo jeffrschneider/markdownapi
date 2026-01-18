@@ -1,4 +1,4 @@
-# Markdown API (MAPI) Specification v0.93
+# Markdown API (MAPI) Specification v0.94
 
 **Draft — January 2026**
 
@@ -25,6 +25,20 @@ Unlike OpenAPI, which optimizes for deterministic code generation, MAPI optimize
 5. **Agent-Ready:** Optimized for LLM consumption with explicit intent and constraint sections.
 6. **Token-Efficient:** Avoid redundant definitions; don't document what LLMs already know.
 7. **Progressive Disclosure:** Task-specific reference cards minimize context window usage.
+
+### A Note on Authentication
+
+Readers familiar with OpenAPI may notice that MAPI has no dedicated "Security" or "Authentication" section. This is intentional, not an oversight.
+
+In MAPI, authentication is a **cross-cutting concern** woven throughout the specification rather than siloed into a single section:
+
+- **Metadata** declares *what* authentication is required (`auth`, `auth_flow`, `auth_scopes`)
+- **Auth Intention** explains *why* and *when*—the prose context LLMs need to reason about auth
+- **Logic Constraints** capture *behavioral rules*—token expiry, scope requirements, error responses
+
+This approach reflects MAPI's Text-First philosophy: authentication requirements are best understood in context, not in isolation. An agent reading a capability should immediately understand its auth requirements alongside its purpose, not cross-reference a separate security section.
+
+For detailed guidance on documenting authentication, see the [Auth Reference Card](MAPI-AUTH.md).
 
 ---
 
@@ -108,6 +122,9 @@ errors: standard
 | `base_url` | Base URL for all HTTP operations | Yes |
 | `auth` | Authentication type (bearer, api_key, basic, oauth2, none) | Yes |
 | `auth_header` | Header name for auth token (default: Authorization) | No |
+| `auth_flow` | OAuth2 flow type (authorization_code, client_credentials, implicit, password) | No |
+| `auth_scopes` | Default required scopes for OAuth2 | No |
+| `auth_docs_url` | URL to authentication documentation or onboarding guide | No |
 | `content_type` | Default content type (default: application/json). Use `multipart/form-data` for file uploads or `application/octet-stream` for binary data. | No |
 | `errors` | Error convention: standard or custom (default: standard) | No |
 
@@ -127,6 +144,8 @@ idempotent: false
 | `id` | Unique operation identifier (namespace.action) | Yes |
 | `transport` | Protocol and path (see Appendix B) | Yes |
 | `auth` | required, optional, or none | No |
+| `auth_flow` | OAuth2 flow override for this capability | No |
+| `auth_scopes` | Scopes required for this capability (overrides document-level) | No |
 | `idempotent` | Whether repeated calls are safe | No |
 | `deprecated` | true if operation is deprecated | No |
 
@@ -230,6 +249,7 @@ Each capability has the following structure:
 | `## Capability: Name` | Human-readable capability name | Yes |
 | `~~~meta` block | Machine-readable metadata | Yes |
 | `### Intention` | Why and when to use this capability | Yes |
+| `### Auth Intention` | Authentication context for agents | When auth ≠ none |
 | `### Logic Constraints` | Business rules in natural language | No |
 | `### Input` | Request schema (TypeScript) | Depends |
 | `### Output` | Success response schema | Yes |
@@ -268,7 +288,47 @@ Business rules that cannot be expressed in TypeScript belong here. Use this for 
 - The total token count of `messages` + `max_tokens` must fit within model limits
 ```
 
+**Authentication-related constraints** also belong here when they affect runtime behavior:
+
+```markdown
+### Logic Constraints
+
+- Requests without valid Bearer token return 401 Unauthorized
+- Expired tokens return 401 with `error: token_expired` in response body
+- Insufficient scopes return 403 with `required_scopes` array in response
+- Rate limits vary by token tier: 100/min (standard), 1000/min (premium)
+- Service account tokens cannot access user-specific resources
+```
+
 > **Tip:** Logic Constraints are for rules that affect runtime behavior. TypeScript handles structural validation; Logic Constraints handle semantic validation.
+
+### 4.4 The Auth Intention Section
+
+When a capability requires authentication, the Auth Intention section provides the prose context that agents need to understand *how* to authenticate—not just *that* they must authenticate.
+
+The Auth Intention section explains:
+
+- How to obtain credentials (the onboarding path)
+- Which scopes or permissions are required
+- Any capability-specific auth considerations
+- Alternatives for different integration patterns (user vs. machine-to-machine)
+
+```markdown
+### Auth Intention
+
+Requires OAuth2 with `payments:write` scope. Users obtain tokens through
+the standard authorization code flow at `/oauth/authorize`.
+
+For server-to-server integrations, use client_credentials flow instead—
+register a service account in the Dashboard under Settings > API Access.
+
+Tokens expire after 1 hour. For long-running processes, implement token
+refresh or request offline_access scope for refresh tokens.
+```
+
+Unlike metadata fields which are machine-parseable, Auth Intention provides the contextual understanding an LLM needs to guide users through authentication or to reason about whether cached credentials are still valid.
+
+> **When to include:** Add Auth Intention whenever `auth: required` and the authentication has nuance beyond "include a Bearer token." Skip it for simple API key authentication where no explanation is needed.
 
 ---
 

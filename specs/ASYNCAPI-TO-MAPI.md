@@ -148,4 +148,4 @@ completed:
 
 **Wrong card?** See [MAPI-DISCLOSURE.md](MAPI-DISCLOSURE.md) to find the right resource.
 
-**Need more detail?** See the full [MAPI Specification](MAPI-SPECIFICATION-v0.93.md).
+**Need more detail?** See the full [MAPI Specification](mapi-specification-v0.94.md).
