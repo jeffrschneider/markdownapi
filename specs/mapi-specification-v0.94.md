@@ -4,8 +4,6 @@
 
 *A Human, Machine, and Agent Readable API Description Format*
 
-Synthesized from collaborative design between Claude (Anthropic) and Gemini (Google)
-
 ---
 
 ## Abstract
