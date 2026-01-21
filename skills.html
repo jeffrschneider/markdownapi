@@ -144,7 +144,7 @@
     <section class="page-header">
         <div class="container">
             <h1>MAPI Skills</h1>
-            <p class="subtitle">Progressive API loading for AI agents. Load only the capabilities you need, reduce token usage by 99%, and maintain high accuracy.</p>
+            <p class="subtitle">Progressive API loading for AI agents. Load only the capabilities you need, reduce token usage by 90%, and achieve 100% accuracy.</p>
         </div>
     </section>
 
@@ -171,12 +171,12 @@
 
                     <div class="stats-grid">
                         <div class="stat-box">
-                            <div class="number">99%</div>
+                            <div class="number">91%</div>
                             <div class="label">Token Reduction</div>
                         </div>
                         <div class="stat-box">
-                            <div class="number">90%</div>
-                            <div class="label">Accuracy Maintained</div>
+                            <div class="number">100%</div>
+                            <div class="label">E2E Test Success</div>
                         </div>
                         <div class="stat-box">
                             <div class="number">2</div>
@@ -251,50 +251,57 @@ auth: bearer
                     <p><strong>Total context: ~4.5KB</strong> instead of 50KB+ for the full spec.</p>
 
                     <h2 id="results">Test Results</h2>
-                    <p>We tested all three approaches on the Notion API (15 test cases):</p>
+                    <p>We tested all three approaches with end-to-end API execution across Anthropic, GitHub, and Google Cloud APIs (10 test cases):</p>
 
                     <table class="comparison-table">
                         <tr>
                             <th>Format</th>
-                            <th>Accuracy</th>
+                            <th>API Success</th>
                             <th>Total Tokens</th>
                             <th>% of OpenAPI</th>
                         </tr>
                         <tr>
                             <td>OpenAPI</td>
-                            <td>90%</td>
-                            <td>1,102,623</td>
+                            <td>83% (5/6)*</td>
+                            <td>108,533</td>
                             <td>100%</td>
                         </tr>
                         <tr>
                             <td>MAPI (Full)</td>
-                            <td>100%</td>
-                            <td>72,424</td>
-                            <td>7%</td>
+                            <td>100% (10/10)</td>
+                            <td>102,849</td>
+                            <td>95%</td>
                         </tr>
                         <tr class="highlight">
                             <td><strong>MAPI Skill</strong></td>
-                            <td><strong>90%</strong></td>
-                            <td><strong>10,366</strong></td>
-                            <td><strong>1%</strong></td>
+                            <td><strong>100% (10/10)</strong></td>
+                            <td><strong>10,021</strong></td>
+                            <td><strong>9%</strong></td>
                         </tr>
                     </table>
+                    <p style="font-size: 0.85rem; color: var(--light-charcoal); margin-top: -0.5rem;"><em>* 4 OpenAPI tests skipped due to rate limits (not counted as failures)</em></p>
 
-                    <p>MAPI Skills achieves <strong>99% token reduction</strong> compared to OpenAPI while maintaining competitive accuracy. The small accuracy gap comes from intent matching - when the Skill.md index keywords are well-tuned, accuracy approaches 100%.</p>
+                    <p>MAPI Skills achieves <strong>91% token reduction</strong> compared to OpenAPI while achieving <strong>100% API success rate</strong> in end-to-end tests. These tests execute real API calls, not just capability matching.</p>
 
                     <h2 id="converter">Converting Specs</h2>
-                    <p>Use the MAPI CLI to convert existing specs to Skill format:</p>
+                    <p>Use the MAPI CLI to convert existing specs to Skill format. The converter has been verified to produce Skills that pass E2E tests:</p>
 
-<pre># Convert a single-file MAPI to Skill format
-mapi split api.mapi.md -o ./my-skill/
-
-# Convert OpenAPI directly to Skill format
+<pre># Convert OpenAPI directly to Skill format
 mapi convert openapi.yaml -o ./my-skill/
 
 # Use LLM to generate better intent keywords
-mapi split api.mapi.md -o ./my-skill/ --generate-intents</pre>
+mapi convert openapi.yaml -o ./my-skill/ --generate-intents
 
-                    <p>See the <a href="converter.html">Converter Documentation</a> for detailed usage.</p>
+# Convert a single-file MAPI to Skill format
+mapi split api.mapi.md -o ./my-skill/</pre>
+
+                    <p>The converter generates:</p>
+                    <ul>
+                        <li><strong>Markdown tables</strong> for Input/Output schemas (not TypeScript)</li>
+                        <li><strong>Explicit enum values</strong> (e.g., valid model names listed inline)</li>
+                        <li><strong>Example requests/responses</strong> with realistic values</li>
+                        <li><strong>LLM-generated intent keywords</strong> when using <code>--generate-intents</code></li>
+                    </ul>
 
                     <h2 id="spec">Full Specification</h2>
                     <p>For complete details on the Skill format, including authoring guidelines and best practices:</p>

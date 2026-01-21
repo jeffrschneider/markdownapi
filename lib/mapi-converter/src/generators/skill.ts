@@ -11,6 +11,7 @@ import {
   ParsedCapability,
   ParsedOpenApiDocument,
   ParsedOpenApiOperation,
+  OpenApiSchema,
   ConvertOptions,
   IntentGenerator,
 } from '../types.js';
@@ -399,13 +400,25 @@ export async function generateSkillFromOpenApi(
 }
 
 /**
- * Normalize an operationId to MAPI format (dots instead of underscores)
+ * Normalize an operationId to MAPI format
+ * - If operationId already has dots, preserve it (just lowercase)
+ * - If operationId uses underscores only, convert first underscore to dot for hierarchy
+ * - Handle camelCase by inserting dots
  */
 function normalizeOperationId(operationId: string): string {
-  return operationId
-    .replace(/_/g, '.')
-    .replace(/([a-z])([A-Z])/g, '$1.$2')
-    .toLowerCase();
+  // If already has dots, just lowercase it
+  if (operationId.includes('.')) {
+    return operationId.toLowerCase();
+  }
+
+  // Convert camelCase to dot notation
+  let normalized = operationId.replace(/([a-z])([A-Z])/g, '$1.$2').toLowerCase();
+
+  // Convert first underscore to dot for resource.action pattern
+  // e.g., "users_create" -> "users.create", "messages_count_tokens" -> "messages.count_tokens"
+  normalized = normalized.replace(/_/, '.');
+
+  return normalized;
 }
 
 /**
@@ -509,28 +522,276 @@ function generateCapabilityFromOperation(
   lines.push(op.description || op.summary || `Performs ${op.operationId} operation.`);
   lines.push('');
 
-  // Input
+  // Input as markdown table
   if (op.parameters?.length || op.requestBody) {
     lines.push('## Input');
     lines.push('');
-    lines.push('```typescript');
-    lines.push(generateInputInterface(op, doc));
-    lines.push('```');
+    lines.push('| Field | Type | Required | Description |');
+    lines.push('|-------|------|----------|-------------|');
+
+    // Path and query parameters
+    if (op.parameters) {
+      for (const param of op.parameters) {
+        const required = param.required ? 'yes' : 'no';
+        const typeInfo = getTypeDescription(param.schema, doc.schemas);
+        const desc = param.description || `Parameter from ${param.in}`;
+        lines.push(`| ${param.name} | ${typeInfo.type} | ${required} | ${typeInfo.description || desc} |`);
+      }
+    }
+
+    // Request body fields
+    if (op.requestBody?.content?.['application/json']?.schema) {
+      const bodySchema = op.requestBody.content['application/json'].schema;
+      const bodyLines = generateInputTableRows(bodySchema, doc.schemas, op.requestBody.required || false);
+      lines.push(...bodyLines);
+    }
+
     lines.push('');
   }
 
-  // Output
+  // Output as markdown table
   const successResponse = op.responses?.['200'] || op.responses?.['201'] || op.responses?.['204'];
-  if (successResponse) {
+  if (successResponse?.content?.['application/json']?.schema) {
     lines.push('## Output');
     lines.push('');
-    lines.push('```typescript');
-    lines.push(generateOutputInterface(op, successResponse, doc));
-    lines.push('```');
+    lines.push('| Field | Type | Description |');
+    lines.push('|-------|------|-------------|');
+
+    const outputSchema = successResponse.content['application/json'].schema;
+    const outputLines = generateOutputTableRows(outputSchema, doc.schemas);
+    lines.push(...outputLines);
+    lines.push('');
+  }
+
+  // Generate Example section
+  const example = generateExample(op, doc);
+  if (example) {
+    lines.push('## Example');
+    lines.push('');
+    lines.push(example);
     lines.push('');
   }
 
   return lines.join('\n');
+}
+
+/**
+ * Get type description with enum values if available
+ */
+function getTypeDescription(schema: OpenApiSchema | undefined, schemas: Record<string, unknown>): { type: string; description?: string } {
+  if (!schema) return { type: 'string' };
+
+  if (schema.$ref) {
+    const refName = schema.$ref.split('/').pop() || 'object';
+    const resolvedSchema = (schemas as Record<string, OpenApiSchema>)[refName];
+    if (resolvedSchema?.enum) {
+      return {
+        type: 'string',
+        description: `One of: ${resolvedSchema.enum.map(e => `\`${e}\``).join(', ')}`
+      };
+    }
+    return { type: refName };
+  }
+
+  if (schema.enum && Array.isArray(schema.enum)) {
+    return {
+      type: 'string',
+      description: `One of: ${schema.enum.map(e => `\`${e}\``).join(', ')}`
+    };
+  }
+
+  if (schema.type === 'array' && schema.items) {
+    const itemType = getTypeDescription(schema.items, schemas);
+    return { type: `array of ${itemType.type}`, description: itemType.description };
+  }
+
+  if (schema.type === 'object' || schema.properties) {
+    return { type: 'object' };
+  }
+
+  return { type: schema.type || 'string' };
+}
+
+/**
+ * Generate input table rows from a schema
+ */
+function generateInputTableRows(
+  schema: OpenApiSchema,
+  schemas: Record<string, unknown>,
+  parentRequired: boolean
+): string[] {
+  const lines: string[] = [];
+
+  // Resolve $ref if present
+  let resolvedSchema = schema;
+  if (schema.$ref) {
+    const refName = schema.$ref.split('/').pop() || '';
+    resolvedSchema = (schemas as Record<string, OpenApiSchema>)[refName] || schema;
+  }
+
+  if (resolvedSchema.properties) {
+    const required = new Set(resolvedSchema.required || []);
+
+    for (const [propName, propSchema] of Object.entries(resolvedSchema.properties)) {
+      const isRequired = required.has(propName) ? 'yes' : 'no';
+      const typeInfo = getTypeDescription(propSchema as OpenApiSchema, schemas);
+      const desc = (propSchema as OpenApiSchema).description || typeInfo.description || '';
+      lines.push(`| ${propName} | ${typeInfo.type} | ${isRequired} | ${desc} |`);
+    }
+  }
+
+  return lines;
+}
+
+/**
+ * Generate output table rows from a schema
+ */
+function generateOutputTableRows(
+  schema: OpenApiSchema,
+  schemas: Record<string, unknown>
+): string[] {
+  const lines: string[] = [];
+
+  // Resolve $ref if present
+  let resolvedSchema = schema;
+  if (schema.$ref) {
+    const refName = schema.$ref.split('/').pop() || '';
+    resolvedSchema = (schemas as Record<string, OpenApiSchema>)[refName] || schema;
+  }
+
+  if (resolvedSchema.properties) {
+    for (const [propName, propSchema] of Object.entries(resolvedSchema.properties)) {
+      const typeInfo = getTypeDescription(propSchema as OpenApiSchema, schemas);
+      const desc = (propSchema as OpenApiSchema).description || typeInfo.description || '';
+      lines.push(`| ${propName} | ${typeInfo.type} | ${desc} |`);
+    }
+  }
+
+  return lines;
+}
+
+/**
+ * Generate example request/response
+ */
+function generateExample(op: ParsedOpenApiOperation, doc: ParsedOpenApiDocument): string | null {
+  const lines: string[] = [];
+
+  // Try to build example request
+  if (op.requestBody?.content?.['application/json']?.schema) {
+    const schema = op.requestBody.content['application/json'].schema;
+    const example = generateExampleFromSchema(schema, doc.schemas);
+    if (example && Object.keys(example).length > 0) {
+      lines.push('Request:');
+      lines.push('```json');
+      lines.push(JSON.stringify(example, null, 2));
+      lines.push('```');
+    }
+  }
+
+  // Try to build example response
+  const successResponse = op.responses?.['200'] || op.responses?.['201'];
+  if (successResponse?.content?.['application/json']?.schema) {
+    const schema = successResponse.content['application/json'].schema;
+    const example = generateExampleFromSchema(schema, doc.schemas);
+    if (example && Object.keys(example).length > 0) {
+      if (lines.length > 0) lines.push('');
+      lines.push('Response:');
+      lines.push('```json');
+      lines.push(JSON.stringify(example, null, 2));
+      lines.push('```');
+    }
+  }
+
+  return lines.length > 0 ? lines.join('\n') : null;
+}
+
+/**
+ * Generate example value from a schema
+ */
+function generateExampleFromSchema(
+  schema: OpenApiSchema,
+  schemas: Record<string, unknown>,
+  depth: number = 0,
+  propName?: string
+): unknown {
+  if (depth > 3) return null; // Prevent infinite recursion
+
+  // Use provided example if available
+  if (schema.example !== undefined) return schema.example;
+
+  // Resolve $ref
+  if (schema.$ref) {
+    const refName = schema.$ref.split('/').pop() || '';
+    const resolvedSchema = (schemas as Record<string, OpenApiSchema>)[refName];
+    if (resolvedSchema) {
+      return generateExampleFromSchema(resolvedSchema, schemas, depth + 1, refName);
+    }
+    return {};
+  }
+
+  // Handle enum - use first value
+  if (schema.enum && Array.isArray(schema.enum) && schema.enum.length > 0) {
+    return schema.enum[0];
+  }
+
+  // Handle array
+  if (schema.type === 'array' && schema.items) {
+    const itemExample = generateExampleFromSchema(schema.items, schemas, depth + 1);
+    return itemExample ? [itemExample] : [];
+  }
+
+  // Handle object
+  if (schema.type === 'object' || schema.properties) {
+    const obj: Record<string, unknown> = {};
+    const required = new Set(schema.required || []);
+
+    if (schema.properties) {
+      for (const [fieldName, propSchema] of Object.entries(schema.properties)) {
+        // Only include required fields and a few optional ones
+        if (required.has(fieldName) || Object.keys(obj).length < 5) {
+          const propExample = generateExampleFromSchema(propSchema as OpenApiSchema, schemas, depth + 1, fieldName);
+          if (propExample !== null) {
+            obj[fieldName] = propExample;
+          }
+        }
+      }
+    }
+    return obj;
+  }
+
+  // Handle primitives with context-aware examples
+  switch (schema.type) {
+    case 'string':
+      if (schema.format === 'date-time') return '2024-01-15T12:00:00Z';
+      if (schema.format === 'date') return '2024-01-15';
+      if (schema.format === 'email') return 'user@example.com';
+      if (schema.format === 'uri') return 'https://example.com';
+      // Context-aware string examples based on property name
+      if (propName) {
+        const lower = propName.toLowerCase();
+        if (lower === 'role') return 'user';
+        if (lower === 'content' || lower === 'text') return 'Hello, how are you?';
+        if (lower === 'id') return 'msg_01XYZ';
+        if (lower === 'name') return 'example';
+        if (lower === 'description') return 'A sample description';
+      }
+      return 'string';
+    case 'integer':
+      // Context-aware integer examples
+      if (propName) {
+        const lower = propName.toLowerCase();
+        if (lower.includes('token')) return 1024;
+        if (lower === 'max_tokens') return 1024;
+      }
+      return schema.minimum !== undefined ? schema.minimum : 100;
+    case 'number':
+      if (propName?.toLowerCase() === 'temperature') return 0.7;
+      return schema.minimum !== undefined ? schema.minimum : 1.0;
+    case 'boolean':
+      return true;
+    default:
+      return null;
+  }
 }
 
 /**
