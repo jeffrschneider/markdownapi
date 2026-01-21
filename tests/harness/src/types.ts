@@ -9,7 +9,7 @@ export type ModelTier = 'haiku' | 'sonnet' | 'opus';
 
 export type SpecFormat = 'openapi' | 'mapi' | 'skill';
 
-export type ApiName = 'anthropic' | 'github' | 'notion' | 'google-cloud';
+export type ApiName = 'anthropic' | 'github' | 'google-cloud';
 
 export interface TestCase {
   id: string;

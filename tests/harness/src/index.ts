@@ -37,7 +37,7 @@ program
   .description('Run tests for a specific configuration')
   .requiredOption('-m, --model <tier>', 'Model tier: haiku, sonnet, or opus')
   .requiredOption('-s, --spec <format>', 'Spec format: openapi, mapi, or skill')
-  .requiredOption('-a, --api <name>', 'API name: anthropic, github, notion, or google-cloud')
+  .requiredOption('-a, --api <name>', 'API name: anthropic, github, or google-cloud')
   .option('-l, --limit <count>', 'Limit number of tests to run')
   .action(async (options) => {
     const model = options.model as ModelTier;
@@ -54,8 +54,8 @@ program
       console.error(`Invalid spec format: ${spec_format}. Must be openapi, mapi, or skill.`);
       process.exit(1);
     }
-    if (!['anthropic', 'github', 'notion', 'google-cloud'].includes(api)) {
-      console.error(`Invalid API: ${api}. Must be anthropic, github, notion, or google-cloud.`);
+    if (!['anthropic', 'github', 'google-cloud'].includes(api)) {
+      console.error(`Invalid API: ${api}. Must be anthropic, github, or google-cloud.`);
       process.exit(1);
     }
 
@@ -85,7 +85,7 @@ program
   .command('compare')
   .description('Run OpenAPI, MAPI, and Skill tests and compare results')
   .requiredOption('-m, --model <tier>', 'Model tier: haiku, sonnet, or opus')
-  .requiredOption('-a, --api <name>', 'API name: anthropic, github, notion, or google-cloud')
+  .requiredOption('-a, --api <name>', 'API name: anthropic, github, or google-cloud')
   .option('-l, --limit <count>', 'Limit number of tests to run')
   .option('--skip-skill', 'Skip Skill format tests')
   .action(async (options) => {
@@ -128,7 +128,7 @@ program
   .requiredOption('-m, --model <tier>', 'Model tier: haiku, sonnet, or opus')
   .action(async (options) => {
     const model = options.model as ModelTier;
-    const apis: ApiName[] = ['anthropic', 'github', 'notion', 'google-cloud'];
+    const apis: ApiName[] = ['anthropic', 'github', 'google-cloud'];
 
     console.log('═══════════════════════════════════════════════════════════');
     console.log('  MAPI Test Harness - Full Test Suite');

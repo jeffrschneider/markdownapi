@@ -38,11 +38,6 @@ const SPEC_FILES: Record<ApiName, { openapi: string; mapi: string; skill: string
     mapi: 'github.mapi.md',
     skill: 'skill',
   },
-  'notion': {
-    openapi: 'openapi.yaml',
-    mapi: 'notion.mapi.md',
-    skill: 'skill',
-  },
   'google-cloud': {
     openapi: 'cloud-billing-openapi.yaml',
     mapi: 'google-cloud-billing.mapi.md',
