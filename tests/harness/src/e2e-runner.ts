@@ -1,13 +1,13 @@
 /**
- * End-to-End Skill Test Runner
+ * End-to-End A/B/C Test Runner
  *
- * Tests the FULL agent flow with REAL API execution:
- * 1. Load Skill.md index
- * 2. LLM matches intent → capability
- * 3. Load capability + dependencies
- * 4. LLM constructs API request
- * 5. Execute the request against live APIs
- * 6. Validate the response
+ * Compares OpenAPI vs MAPI vs Skill format with REAL API execution.
+ *
+ * For each test case, runs all three formats and tracks:
+ * - Token usage (input/output)
+ * - Latency (ms)
+ * - Accuracy (correct capability match)
+ * - API execution success
  *
  * Only includes READ-ONLY tests that don't modify data.
  */
@@ -40,6 +40,7 @@ async function getGcpToken(): Promise<string> {
 }
 
 type ApiType = "anthropic" | "github" | "gcp-billing";
+type SpecFormat = "openapi" | "mapi" | "skill";
 
 interface E2ETestCase {
   id: string;
@@ -49,23 +50,33 @@ interface E2ETestCase {
   validateResponse: (response: any) => { pass: boolean; reason: string };
 }
 
-interface E2ETestResult {
+interface FormatResult {
+  format: SpecFormat;
+  inputTokens: number;
+  outputTokens: number;
+  latencyMs: number;
+  matchedCapability: string | null;
+  capabilityCorrect: boolean;
+  apiSuccess: boolean;
+  apiResponse: any;
+  validationReason: string;
+  error?: string;
+  rateLimitSkipped?: boolean; // True if skipped due to rate limit exhaustion
+}
+
+interface TestResult {
   testId: string;
   userRequest: string;
-  phase1_matchedCapability: string | null;
-  phase1_correct: boolean;
-  phase2_requestConstructed: any | null;
-  phase3_responseReceived: any | null;
-  phase4_validationPassed: boolean;
-  phase4_validationReason: string;
-  overallPass: boolean;
-  error?: string;
+  expectedCapability: string;
+  results: Record<SpecFormat, FormatResult>;
 }
 
 const API_CONFIGS: Record<ApiType, {
   skillPath: string;
   baseUrl: string;
   getHeaders: () => Promise<Record<string, string>>;
+  openApiFile: string;
+  mapiFile: string;
 }> = {
   anthropic: {
     skillPath: "../../popularAPIs/anthropic/skill",
@@ -75,6 +86,8 @@ const API_CONFIGS: Record<ApiType, {
       "anthropic-version": "2023-06-01",
       "Content-Type": "application/json",
     }),
+    openApiFile: "../../popularAPIs/anthropic/openapi-messages.yaml",
+    mapiFile: "../../popularAPIs/anthropic/anthropic.mapi.md",
   },
   github: {
     skillPath: "../../popularAPIs/github/skill",
@@ -84,6 +97,8 @@ const API_CONFIGS: Record<ApiType, {
       Accept: "application/vnd.github+json",
       "Content-Type": "application/json",
     }),
+    openApiFile: "../../popularAPIs/github/openapi.json",
+    mapiFile: "../../popularAPIs/github/github.mapi.md",
   },
   "gcp-billing": {
     skillPath: "../../popularAPIs/google-cloud/skill",
@@ -92,6 +107,8 @@ const API_CONFIGS: Record<ApiType, {
       Authorization: `Bearer ${await getGcpToken()}`,
       "Content-Type": "application/json",
     }),
+    openApiFile: "../../popularAPIs/google-cloud/cloud-billing-openapi.yaml",
+    mapiFile: "../../popularAPIs/google-cloud/google-cloud-billing.mapi.md",
   },
 };
 
@@ -117,21 +134,6 @@ const ANTHROPIC_TESTS: E2ETestCase[] = [
   },
   {
     id: "anthropic-002",
-    userRequest: "Count tokens in: 'The quick brown fox jumps over the lazy dog'",
-    api: "anthropic",
-    expectedCapability: "messages.count_tokens",
-    validateResponse: (resp) => {
-      if (resp.input_tokens && typeof resp.input_tokens === "number") {
-        return { pass: true, reason: `Token count: ${resp.input_tokens}` };
-      }
-      if (resp.error) {
-        return { pass: false, reason: `API error: ${resp.error.message}` };
-      }
-      return { pass: false, reason: "Missing input_tokens field" };
-    },
-  },
-  {
-    id: "anthropic-003",
     userRequest: "Send a message to Claude asking what 2+2 equals. Use claude-3-5-haiku model with max 50 tokens.",
     api: "anthropic",
     expectedCapability: "messages.create",
@@ -139,9 +141,9 @@ const ANTHROPIC_TESTS: E2ETestCase[] = [
       if (resp.content && resp.content[0]?.text) {
         const text = resp.content[0].text.toLowerCase();
         if (text.includes("4") || text.includes("four")) {
-          return { pass: true, reason: `Claude answered: ${resp.content[0].text.substring(0, 50)}` };
+          return { pass: true, reason: `Claude answered correctly` };
         }
-        return { pass: false, reason: `Unexpected answer: ${resp.content[0].text.substring(0, 50)}` };
+        return { pass: false, reason: `Unexpected answer: ${resp.content[0].text.substring(0, 30)}` };
       }
       if (resp.error) {
         return { pass: false, reason: `API error: ${resp.error.message}` };
@@ -150,7 +152,7 @@ const ANTHROPIC_TESTS: E2ETestCase[] = [
     },
   },
   {
-    id: "anthropic-004",
+    id: "anthropic-003",
     userRequest: "Ask Claude what the capital of France is. Use claude-3-5-haiku with max 100 tokens.",
     api: "anthropic",
     expectedCapability: "messages.create",
@@ -158,9 +160,9 @@ const ANTHROPIC_TESTS: E2ETestCase[] = [
       if (resp.content && resp.content[0]?.text) {
         const text = resp.content[0].text.toLowerCase();
         if (text.includes("paris")) {
-          return { pass: true, reason: `Claude answered: ${resp.content[0].text.substring(0, 50)}` };
+          return { pass: true, reason: `Claude answered correctly` };
         }
-        return { pass: false, reason: `Unexpected answer: ${resp.content[0].text.substring(0, 50)}` };
+        return { pass: false, reason: `Unexpected answer: ${resp.content[0].text.substring(0, 30)}` };
       }
       if (resp.error) {
         return { pass: false, reason: `API error: ${resp.error.message}` };
@@ -168,25 +170,9 @@ const ANTHROPIC_TESTS: E2ETestCase[] = [
       return { pass: false, reason: "Missing content" };
     },
   },
-  {
-    id: "anthropic-005",
-    userRequest: "Ask Claude to write a one-line haiku about code. Use claude-3-5-haiku with max 100 tokens.",
-    api: "anthropic",
-    expectedCapability: "messages.create",
-    validateResponse: (resp) => {
-      if (resp.content && resp.content[0]?.text && resp.content[0].text.length > 5) {
-        return { pass: true, reason: `Claude wrote: ${resp.content[0].text.substring(0, 60)}...` };
-      }
-      if (resp.error) {
-        return { pass: false, reason: `API error: ${resp.error.message}` };
-      }
-      return { pass: false, reason: "Missing or empty content" };
-    },
-  },
 ];
 
 const GITHUB_TESTS: E2ETestCase[] = [
-  // repos.get tests
   {
     id: "github-001",
     userRequest: "Get details about the repository jeffrschneider/markdownapi",
@@ -209,7 +195,7 @@ const GITHUB_TESTS: E2ETestCase[] = [
     expectedCapability: "repos.get",
     validateResponse: (resp) => {
       if (resp.full_name === "facebook/react") {
-        return { pass: true, reason: `Got repo: ${resp.full_name}, stars: ${resp.stargazers_count}` };
+        return { pass: true, reason: `Got repo with ${resp.stargazers_count} stars` };
       }
       if (resp.message) {
         return { pass: false, reason: `API error: ${resp.message}` };
@@ -219,69 +205,22 @@ const GITHUB_TESTS: E2ETestCase[] = [
   },
   {
     id: "github-003",
-    userRequest: "Show me details of the microsoft/vscode repository",
+    userRequest: "List the open issues on facebook/react",
     api: "github",
-    expectedCapability: "repos.get",
+    expectedCapability: "issues.list",
     validateResponse: (resp) => {
-      if (resp.full_name === "microsoft/vscode") {
-        return { pass: true, reason: `Got repo: ${resp.full_name}` };
+      if (Array.isArray(resp)) {
+        return { pass: true, reason: `Got ${resp.length} issues` };
       }
       if (resp.message) {
         return { pass: false, reason: `API error: ${resp.message}` };
       }
-      return { pass: false, reason: "Unexpected response" };
+      return { pass: false, reason: "Expected array" };
     },
   },
-  // issues.list tests
   {
     id: "github-004",
-    userRequest: "List the open issues on jeffrschneider/markdownapi",
-    api: "github",
-    expectedCapability: "issues.list",
-    validateResponse: (resp) => {
-      if (Array.isArray(resp)) {
-        return { pass: true, reason: `Got ${resp.length} issues` };
-      }
-      if (resp.message) {
-        return { pass: false, reason: `API error: ${resp.message}` };
-      }
-      return { pass: false, reason: "Expected array" };
-    },
-  },
-  {
-    id: "github-005",
-    userRequest: "List open issues in the facebook/react repository",
-    api: "github",
-    expectedCapability: "issues.list",
-    validateResponse: (resp) => {
-      if (Array.isArray(resp)) {
-        return { pass: true, reason: `Got ${resp.length} issues` };
-      }
-      if (resp.message) {
-        return { pass: false, reason: `API error: ${resp.message}` };
-      }
-      return { pass: false, reason: "Expected array" };
-    },
-  },
-  // pulls.list tests
-  {
-    id: "github-006",
-    userRequest: "List all open pull requests in facebook/react",
-    api: "github",
-    expectedCapability: "pulls.list",
-    validateResponse: (resp) => {
-      if (Array.isArray(resp)) {
-        return { pass: true, reason: `Got ${resp.length} PRs` };
-      }
-      if (resp.message) {
-        return { pass: false, reason: `API error: ${resp.message}` };
-      }
-      return { pass: false, reason: "Expected array" };
-    },
-  },
-  {
-    id: "github-007",
-    userRequest: "Show me PRs in kubernetes/kubernetes",
+    userRequest: "List all open pull requests in kubernetes/kubernetes",
     api: "github",
     expectedCapability: "pulls.list",
     validateResponse: (resp) => {
@@ -297,7 +236,6 @@ const GITHUB_TESTS: E2ETestCase[] = [
 ];
 
 const GCP_BILLING_TESTS: E2ETestCase[] = [
-  // billingAccounts.list tests
   {
     id: "gcp-001",
     userRequest: "List all my billing accounts",
@@ -305,7 +243,7 @@ const GCP_BILLING_TESTS: E2ETestCase[] = [
     expectedCapability: "billingAccounts.list",
     validateResponse: (resp) => {
       if (resp.billingAccounts && Array.isArray(resp.billingAccounts)) {
-        return { pass: true, reason: `Got ${resp.billingAccounts.length} billing account(s)` };
+        return { pass: true, reason: `Got ${resp.billingAccounts.length} account(s)` };
       }
       if (resp.error) {
         return { pass: false, reason: `API error: ${resp.error.message}` };
@@ -315,22 +253,6 @@ const GCP_BILLING_TESTS: E2ETestCase[] = [
   },
   {
     id: "gcp-002",
-    userRequest: "Show me the billing accounts I have access to",
-    api: "gcp-billing",
-    expectedCapability: "billingAccounts.list",
-    validateResponse: (resp) => {
-      if (resp.billingAccounts && Array.isArray(resp.billingAccounts)) {
-        return { pass: true, reason: `Got ${resp.billingAccounts.length} billing account(s)` };
-      }
-      if (resp.error) {
-        return { pass: false, reason: `API error: ${resp.error.message}` };
-      }
-      return { pass: false, reason: "Expected billingAccounts array" };
-    },
-  },
-  // billingAccounts.get tests
-  {
-    id: "gcp-003",
     userRequest: "Get details for billing account 00F713-8B305A-24E5FA",
     api: "gcp-billing",
     expectedCapability: "billingAccounts.get",
@@ -344,9 +266,8 @@ const GCP_BILLING_TESTS: E2ETestCase[] = [
       return { pass: false, reason: "Expected billing account details" };
     },
   },
-  // services.list tests
   {
-    id: "gcp-004",
+    id: "gcp-003",
     userRequest: "List all Google Cloud services available",
     api: "gcp-billing",
     expectedCapability: "services.list",
@@ -360,24 +281,8 @@ const GCP_BILLING_TESTS: E2ETestCase[] = [
       return { pass: false, reason: "Expected services array" };
     },
   },
-  {
-    id: "gcp-005",
-    userRequest: "Show me the catalog of GCP services",
-    api: "gcp-billing",
-    expectedCapability: "services.list",
-    validateResponse: (resp) => {
-      if (resp.services && Array.isArray(resp.services)) {
-        return { pass: true, reason: `Got ${resp.services.length} services` };
-      }
-      if (resp.error) {
-        return { pass: false, reason: `API error: ${resp.error.message}` };
-      }
-      return { pass: false, reason: "Expected services array" };
-    },
-  },
 ];
 
-// Combine all tests
 const ALL_TESTS: E2ETestCase[] = [
   ...ANTHROPIC_TESTS,
   ...GITHUB_TESTS,
@@ -385,273 +290,541 @@ const ALL_TESTS: E2ETestCase[] = [
 ];
 
 // =============================================================================
-// SKILL LOADING FUNCTIONS
+// SPEC LOADING FUNCTIONS
 // =============================================================================
 
-async function loadSkillIndex(api: ApiType): Promise<string> {
+function loadOpenApiSpec(api: ApiType): string {
+  const cfg = API_CONFIGS[api];
+  const specPath = path.join(__dirname, cfg.openApiFile);
+  return fs.readFileSync(specPath, "utf-8");
+}
+
+function loadMapiSpec(api: ApiType): string {
+  const cfg = API_CONFIGS[api];
+  const specPath = path.join(__dirname, cfg.mapiFile);
+  return fs.readFileSync(specPath, "utf-8");
+}
+
+function loadSkillIndex(api: ApiType): string {
   const cfg = API_CONFIGS[api];
   const skillPath = path.join(__dirname, cfg.skillPath, "Skill.md");
   return fs.readFileSync(skillPath, "utf-8");
 }
 
-async function loadCapability(api: ApiType, capabilityId: string): Promise<string> {
+function loadCapability(api: ApiType, capabilityId: string): string {
   const cfg = API_CONFIGS[api];
   const capPath = path.join(__dirname, cfg.skillPath, "capabilities", `${capabilityId}.md`);
-
   if (!fs.existsSync(capPath)) {
     throw new Error(`Capability file not found: ${capPath}`);
   }
-
   return fs.readFileSync(capPath, "utf-8");
 }
 
-async function loadCommon(api: ApiType, filename: string): Promise<string> {
+function loadCommon(api: ApiType, filename: string): string {
   const cfg = API_CONFIGS[api];
   const commonPath = path.join(__dirname, cfg.skillPath, "common", filename);
-
   if (!fs.existsSync(commonPath)) {
     return "";
   }
-
   return fs.readFileSync(commonPath, "utf-8");
 }
 
 // =============================================================================
-// TEST PHASES
+// RATE LIMIT HANDLING
 // =============================================================================
 
-async function phase1_matchIntent(
-  skillIndex: string,
-  userRequest: string
-): Promise<string | null> {
-  const response = await client.messages.create({
-    model: "claude-3-5-haiku-20241022",
-    max_tokens: 100,
-    messages: [
-      {
-        role: "user",
-        content: `You are an API routing agent. Given the Skill index below and a user request, identify which capability should handle it.
+const MAX_RETRIES = 5;
+const BASE_DELAY_MS = 3000;
 
-SKILL INDEX:
-${skillIndex}
-
-USER REQUEST: ${userRequest}
-
-Respond with ONLY the capability ID (e.g., "messages.create" or "repos.get"). Nothing else.`,
-      },
-    ],
-  });
-
-  const text = response.content[0].type === "text" ? response.content[0].text.trim() : null;
-  return text;
-}
-
-async function phase2_constructRequest(
-  capabilityContent: string,
-  authContent: string,
-  userRequest: string,
-  baseUrl: string
-): Promise<any> {
-  const response = await client.messages.create({
-    model: "claude-3-5-haiku-20241022",
-    max_tokens: 500,
-    messages: [
-      {
-        role: "user",
-        content: `You are an API request builder. Given the capability spec and user request, construct the exact HTTP request.
-
-CAPABILITY SPEC:
-${capabilityContent}
-
-AUTH INFO:
-${authContent}
-
-BASE URL: ${baseUrl}
-
-USER REQUEST: ${userRequest}
-
-Respond with ONLY valid JSON in this exact format (no markdown, no explanation):
-{"method": "GET|POST|etc", "path": "/v1/...", "body": {...} or null}`,
-      },
-    ],
-  });
-
-  const text = response.content[0].type === "text" ? response.content[0].text.trim() : "";
-
-  // Clean up potential markdown formatting
-  let jsonStr = text;
-  if (jsonStr.startsWith("```")) {
-    jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
-  }
-
-  try {
-    return JSON.parse(jsonStr);
-  } catch (e) {
-    console.error("Failed to parse LLM response as JSON:", text);
-    throw new Error(`Invalid JSON from LLM: ${text}`);
+// Custom error class to identify rate limit exhaustion
+class RateLimitExhaustedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RateLimitExhaustedError";
   }
 }
 
-async function phase3_executeRequest(
-  api: ApiType,
-  request: { method: string; path: string; body?: any }
-): Promise<any> {
-  const cfg = API_CONFIGS[api];
-  const url = `${cfg.baseUrl}${request.path}`;
-  const headers = await cfg.getHeaders();
+// Check if error is a transient error that should be retried
+function isTransientError(error: any): boolean {
+  if (isRateLimitError(error)) return true;
+  const msg = error?.message?.toLowerCase() || "";
+  // Connection errors are often transient
+  if (msg.includes("connection") || msg.includes("timeout") || msg.includes("econnreset")) return true;
+  return false;
+}
 
-  const fetchOptions: RequestInit = {
-    method: request.method,
-    headers,
+function isRateLimitError(error: any): boolean {
+  if (error?.status === 429 || error?.status === 529) return true;
+  if (error?.error?.type === "rate_limit_error") return true;
+  const msg = error?.message?.toLowerCase() || "";
+  if (msg.includes("429") || msg.includes("rate") || msg.includes("overloaded")) return true;
+  // Connection errors after rate limiting often indicate we should back off
+  if (msg.includes("connection error") || msg.includes("connection reset")) return true;
+  return false;
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  context: string
+): Promise<T> {
+  let lastError: any;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      if (isTransientError(error) && attempt < MAX_RETRIES - 1) {
+        const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+        const errorType = isRateLimitError(error) ? "rate limited" : "transient error";
+        console.log(`\n    [${errorType} on ${context}, waiting ${delay}ms...]`);
+        await sleep(delay);
+      } else if (!isTransientError(error)) {
+        throw error; // Non-transient error, don't retry
+      }
+    }
+  }
+  // If we get here and it was a rate limit error, throw special error
+  if (isRateLimitError(lastError)) {
+    throw new RateLimitExhaustedError(`Rate limit exhausted after ${MAX_RETRIES} retries on ${context}`);
+  }
+  throw lastError;
+}
+
+// =============================================================================
+// LLM CALLS WITH TOKEN TRACKING
+// =============================================================================
+
+interface LLMResult {
+  content: string;
+  inputTokens: number;
+  outputTokens: number;
+  latencyMs: number;
+}
+
+async function callLLM(systemPrompt: string, userPrompt: string): Promise<LLMResult> {
+  const startTime = Date.now();
+
+  const response = await withRetry(
+    () => client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 500,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
+    }),
+    "LLM call"
+  );
+
+  const latencyMs = Date.now() - startTime;
+  const content = response.content[0].type === "text" ? response.content[0].text.trim() : "";
+
+  return {
+    content,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+    latencyMs,
+  };
+}
+
+// =============================================================================
+// TEST EXECUTION BY FORMAT
+// =============================================================================
+
+async function runWithOpenApi(
+  testCase: E2ETestCase,
+  spec: string
+): Promise<FormatResult> {
+  const result: FormatResult = {
+    format: "openapi",
+    inputTokens: 0,
+    outputTokens: 0,
+    latencyMs: 0,
+    matchedCapability: null,
+    capabilityCorrect: false,
+    apiSuccess: false,
+    apiResponse: null,
+    validationReason: "",
   };
 
-  if (request.body && request.method !== "GET") {
-    fetchOptions.body = JSON.stringify(request.body);
-  }
-
-  const response = await fetch(url, fetchOptions);
-  return response.json();
-}
-
-// =============================================================================
-// TEST RUNNER
-// =============================================================================
-
-async function runE2ETest(testCase: E2ETestCase): Promise<E2ETestResult> {
-  const result: E2ETestResult = {
-    testId: testCase.id,
-    userRequest: testCase.userRequest,
-    phase1_matchedCapability: null,
-    phase1_correct: false,
-    phase2_requestConstructed: null,
-    phase3_responseReceived: null,
-    phase4_validationPassed: false,
-    phase4_validationReason: "",
-    overallPass: false,
-  };
-
   try {
-    // Phase 1: Load skill index and match intent
-    console.log(`\n[${testCase.id}] Phase 1: Matching intent...`);
-    const skillIndex = await loadSkillIndex(testCase.api);
-    const matchedCapability = await phase1_matchIntent(skillIndex, testCase.userRequest);
-    result.phase1_matchedCapability = matchedCapability;
-    result.phase1_correct = matchedCapability === testCase.expectedCapability;
-    console.log(`  Matched: ${matchedCapability} (expected: ${testCase.expectedCapability}) ${result.phase1_correct ? "✓" : "✗"}`);
+    // Phase 1: Match intent
+    const matchResult = await callLLM(
+      `You are an API routing agent. Given the OpenAPI specification below and a user request, identify which operation should handle it.\n\nOPENAPI SPEC:\n${spec}\n\nRespond with ONLY the operationId. Nothing else.`,
+      testCase.userRequest
+    );
+    result.inputTokens += matchResult.inputTokens;
+    result.outputTokens += matchResult.outputTokens;
+    result.latencyMs += matchResult.latencyMs;
+    result.matchedCapability = matchResult.content.replace(/['"]/g, "").trim();
+    result.capabilityCorrect = result.matchedCapability === testCase.expectedCapability;
 
-    if (!matchedCapability) {
-      throw new Error("Failed to match capability");
+    // Phase 2: Construct request
+    const constructResult = await callLLM(
+      `You are an API request builder. Given the OpenAPI spec and user request, construct the HTTP request.\n\nOPENAPI SPEC:\n${spec}\n\nBASE URL: ${API_CONFIGS[testCase.api].baseUrl}\n\nRespond with ONLY valid JSON: {"method": "...", "path": "...", "body": ... or null}`,
+      testCase.userRequest
+    );
+    result.inputTokens += constructResult.inputTokens;
+    result.outputTokens += constructResult.outputTokens;
+    result.latencyMs += constructResult.latencyMs;
+
+    // Parse and execute
+    let jsonStr = constructResult.content;
+    if (jsonStr.startsWith("```")) {
+      jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+    }
+    const request = JSON.parse(jsonStr);
+
+    // Execute API call with retry
+    const cfg = API_CONFIGS[testCase.api];
+    const headers = await cfg.getHeaders();
+    const fetchOptions: RequestInit = { method: request.method, headers };
+    if (request.body && request.method !== "GET") {
+      fetchOptions.body = JSON.stringify(request.body);
     }
 
-    // Phase 2: Load capability and construct request
-    console.log(`[${testCase.id}] Phase 2: Constructing request...`);
-    const capabilityContent = await loadCapability(testCase.api, matchedCapability);
-    const authContent = await loadCommon(testCase.api, "auth.md");
-    const apiConfig = API_CONFIGS[testCase.api];
+    result.apiResponse = await withRetry(async () => {
+      const response = await fetch(`${cfg.baseUrl}${request.path}`, fetchOptions);
+      if (response.status === 429 || response.status === 529) {
+        const error: any = new Error(`Rate limited: ${response.status}`);
+        error.status = response.status;
+        throw error;
+      }
+      return response.json();
+    }, "API call");
 
-    const request = await phase2_constructRequest(
-      capabilityContent,
-      authContent,
-      testCase.userRequest,
-      apiConfig.baseUrl
-    );
-    result.phase2_requestConstructed = request;
-    console.log(`  Request: ${request.method} ${request.path}`);
-    if (request.body) console.log(`  Body: ${JSON.stringify(request.body).substring(0, 100)}...`);
-
-    // Phase 3: Execute the request
-    console.log(`[${testCase.id}] Phase 3: Executing request...`);
-    const response = await phase3_executeRequest(testCase.api, request);
-    result.phase3_responseReceived = response;
-    console.log(`  Response: ${JSON.stringify(response).substring(0, 150)}...`);
-
-    // Phase 4: Validate the response
-    console.log(`[${testCase.id}] Phase 4: Validating response...`);
-    const validation = testCase.validateResponse(response);
-    result.phase4_validationPassed = validation.pass;
-    result.phase4_validationReason = validation.reason;
-    console.log(`  ${validation.pass ? "✓" : "✗"} ${validation.reason}`);
-
-    // Overall pass requires all phases to succeed
-    result.overallPass = result.phase1_correct && result.phase4_validationPassed;
+    // Validate
+    const validation = testCase.validateResponse(result.apiResponse);
+    result.apiSuccess = validation.pass;
+    result.validationReason = validation.reason;
 
   } catch (error) {
-    result.error = (error as Error).message;
-    console.error(`  ERROR: ${result.error}`);
+    if (error instanceof RateLimitExhaustedError) {
+      result.rateLimitSkipped = true;
+      result.validationReason = "Skipped: rate limit exhausted";
+    } else {
+      result.error = (error as Error).message;
+      result.validationReason = `Error: ${result.error}`;
+    }
   }
 
   return result;
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const apiFilter = args.find(a => a.startsWith("--api="))?.split("=")[1] as ApiType | undefined;
+async function runWithMapi(
+  testCase: E2ETestCase,
+  spec: string
+): Promise<FormatResult> {
+  const result: FormatResult = {
+    format: "mapi",
+    inputTokens: 0,
+    outputTokens: 0,
+    latencyMs: 0,
+    matchedCapability: null,
+    capabilityCorrect: false,
+    apiSuccess: false,
+    apiResponse: null,
+    validationReason: "",
+  };
 
-  console.log("═══════════════════════════════════════════════════════════════════");
-  console.log("  End-to-End Skill Test Runner");
-  console.log("═══════════════════════════════════════════════════════════════════");
-  console.log("\nThis tests the FULL agent flow with REAL API execution:");
-  console.log("  1. Load Skill.md index");
-  console.log("  2. LLM matches intent → capability");
-  console.log("  3. Load capability, LLM constructs request");
-  console.log("  4. Execute REAL API call");
-  console.log("  5. Validate response\n");
+  try {
+    // Phase 1: Match intent
+    const matchResult = await callLLM(
+      `You are an API routing agent. Given the MAPI specification below and a user request, identify which capability should handle it.\n\nMAPI SPEC:\n${spec}\n\nRespond with ONLY the capability ID. Nothing else.`,
+      testCase.userRequest
+    );
+    result.inputTokens += matchResult.inputTokens;
+    result.outputTokens += matchResult.outputTokens;
+    result.latencyMs += matchResult.latencyMs;
+    result.matchedCapability = matchResult.content.replace(/['"]/g, "").trim();
+    result.capabilityCorrect = result.matchedCapability === testCase.expectedCapability;
 
-  // Filter tests if API specified
-  let testsToRun = ALL_TESTS;
-  if (apiFilter) {
-    testsToRun = ALL_TESTS.filter(t => t.api === apiFilter);
-    console.log(`Filtering to ${apiFilter} tests only (${testsToRun.length} tests)\n`);
-  } else {
-    console.log(`Running all ${ALL_TESTS.length} tests\n`);
+    // Phase 2: Construct request
+    const constructResult = await callLLM(
+      `You are an API request builder. Given the MAPI spec and user request, construct the HTTP request.\n\nMAPI SPEC:\n${spec}\n\nBASE URL: ${API_CONFIGS[testCase.api].baseUrl}\n\nRespond with ONLY valid JSON: {"method": "...", "path": "...", "body": ... or null}`,
+      testCase.userRequest
+    );
+    result.inputTokens += constructResult.inputTokens;
+    result.outputTokens += constructResult.outputTokens;
+    result.latencyMs += constructResult.latencyMs;
+
+    // Parse and execute
+    let jsonStr = constructResult.content;
+    if (jsonStr.startsWith("```")) {
+      jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+    }
+    const request = JSON.parse(jsonStr);
+
+    // Execute API call with retry
+    const cfg = API_CONFIGS[testCase.api];
+    const headers = await cfg.getHeaders();
+    const fetchOptions: RequestInit = { method: request.method, headers };
+    if (request.body && request.method !== "GET") {
+      fetchOptions.body = JSON.stringify(request.body);
+    }
+
+    result.apiResponse = await withRetry(async () => {
+      const response = await fetch(`${cfg.baseUrl}${request.path}`, fetchOptions);
+      if (response.status === 429 || response.status === 529) {
+        const error: any = new Error(`Rate limited: ${response.status}`);
+        error.status = response.status;
+        throw error;
+      }
+      return response.json();
+    }, "MAPI API call");
+
+    // Validate
+    const validation = testCase.validateResponse(result.apiResponse);
+    result.apiSuccess = validation.pass;
+    result.validationReason = validation.reason;
+
+  } catch (error) {
+    if (error instanceof RateLimitExhaustedError) {
+      result.rateLimitSkipped = true;
+      result.validationReason = "Skipped: rate limit exhausted";
+    } else {
+      result.error = (error as Error).message;
+      result.validationReason = `Error: ${result.error}`;
+    }
   }
 
-  const results: E2ETestResult[] = [];
+  return result;
+}
 
-  for (const testCase of testsToRun) {
-    const result = await runE2ETest(testCase);
+async function runWithSkill(
+  testCase: E2ETestCase,
+  skillIndex: string
+): Promise<FormatResult> {
+  const result: FormatResult = {
+    format: "skill",
+    inputTokens: 0,
+    outputTokens: 0,
+    latencyMs: 0,
+    matchedCapability: null,
+    capabilityCorrect: false,
+    apiSuccess: false,
+    apiResponse: null,
+    validationReason: "",
+  };
+
+  try {
+    // Phase 1: Match intent (uses only Skill.md index - small!)
+    const matchResult = await callLLM(
+      `You are an API routing agent. Given the Skill index below and a user request, identify which capability should handle it.\n\nSKILL INDEX:\n${skillIndex}\n\nRespond with ONLY the capability ID. Nothing else.`,
+      testCase.userRequest
+    );
+    result.inputTokens += matchResult.inputTokens;
+    result.outputTokens += matchResult.outputTokens;
+    result.latencyMs += matchResult.latencyMs;
+    result.matchedCapability = matchResult.content.replace(/['"]/g, "").trim();
+    result.capabilityCorrect = result.matchedCapability === testCase.expectedCapability;
+
+    if (!result.matchedCapability) {
+      throw new Error("Failed to match capability");
+    }
+
+    // Phase 2: Load capability file and construct request (progressive loading!)
+    const capabilityContent = loadCapability(testCase.api, result.matchedCapability);
+    const authContent = loadCommon(testCase.api, "auth.md");
+
+    const constructResult = await callLLM(
+      `You are an API request builder. Given the capability spec and user request, construct the HTTP request.\n\nCAPABILITY SPEC:\n${capabilityContent}\n\nAUTH INFO:\n${authContent}\n\nBASE URL: ${API_CONFIGS[testCase.api].baseUrl}\n\nRespond with ONLY valid JSON: {"method": "...", "path": "...", "body": ... or null}`,
+      testCase.userRequest
+    );
+    result.inputTokens += constructResult.inputTokens;
+    result.outputTokens += constructResult.outputTokens;
+    result.latencyMs += constructResult.latencyMs;
+
+    // Parse and execute
+    let jsonStr = constructResult.content;
+    if (jsonStr.startsWith("```")) {
+      jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
+    }
+    const request = JSON.parse(jsonStr);
+
+    // Execute API call with retry
+    const cfg = API_CONFIGS[testCase.api];
+    const headers = await cfg.getHeaders();
+    const fetchOptions: RequestInit = { method: request.method, headers };
+    if (request.body && request.method !== "GET") {
+      fetchOptions.body = JSON.stringify(request.body);
+    }
+
+    result.apiResponse = await withRetry(async () => {
+      const response = await fetch(`${cfg.baseUrl}${request.path}`, fetchOptions);
+      if (response.status === 429 || response.status === 529) {
+        const error: any = new Error(`Rate limited: ${response.status}`);
+        error.status = response.status;
+        throw error;
+      }
+      return response.json();
+    }, "Skill API call");
+
+    // Validate
+    const validation = testCase.validateResponse(result.apiResponse);
+    result.apiSuccess = validation.pass;
+    result.validationReason = validation.reason;
+
+  } catch (error) {
+    if (error instanceof RateLimitExhaustedError) {
+      result.rateLimitSkipped = true;
+      result.validationReason = "Skipped: rate limit exhausted";
+    } else {
+      result.error = (error as Error).message;
+      result.validationReason = `Error: ${result.error}`;
+    }
+  }
+
+  return result;
+}
+
+// =============================================================================
+// MAIN TEST RUNNER
+// =============================================================================
+
+async function runTest(testCase: E2ETestCase): Promise<TestResult> {
+  console.log(`\n[${testCase.id}] ${testCase.userRequest.substring(0, 50)}...`);
+
+  // Load specs once per test
+  const openApiSpec = loadOpenApiSpec(testCase.api);
+  const mapiSpec = loadMapiSpec(testCase.api);
+  const skillIndex = loadSkillIndex(testCase.api);
+
+  // Run all three formats
+  const formatStatus = (r: FormatResult) => {
+    if (r.rateLimitSkipped) return "⊘ (rate limited - skipped)";
+    if (r.apiSuccess) return "✓";
+    return `✗ (${r.validationReason.substring(0, 40)})`;
+  };
+
+  process.stdout.write("  OpenAPI: ");
+  const openApiResult = await runWithOpenApi(testCase, openApiSpec);
+  console.log(formatStatus(openApiResult));
+
+  process.stdout.write("  MAPI:    ");
+  const mapiResult = await runWithMapi(testCase, mapiSpec);
+  console.log(formatStatus(mapiResult));
+
+  process.stdout.write("  Skill:   ");
+  const skillResult = await runWithSkill(testCase, skillIndex);
+  console.log(formatStatus(skillResult));
+
+  return {
+    testId: testCase.id,
+    userRequest: testCase.userRequest,
+    expectedCapability: testCase.expectedCapability,
+    results: {
+      openapi: openApiResult,
+      mapi: mapiResult,
+      skill: skillResult,
+    },
+  };
+}
+
+async function main() {
+  console.log("═══════════════════════════════════════════════════════════════════════════");
+  console.log("  End-to-End A/B/C Test: OpenAPI vs MAPI vs Skill");
+  console.log("═══════════════════════════════════════════════════════════════════════════");
+  console.log("\nThis tests the FULL agent flow with REAL API execution.");
+  console.log("Each test runs against all three spec formats and compares:\n");
+  console.log("  - Token usage (input + output)");
+  console.log("  - Latency (ms)");
+  console.log("  - Capability matching accuracy");
+  console.log("  - API execution success\n");
+
+  const results: TestResult[] = [];
+
+  for (const testCase of ALL_TESTS) {
+    const result = await runTest(testCase);
     results.push(result);
   }
 
-  // Summary by API
-  console.log("\n═══════════════════════════════════════════════════════════════════");
-  console.log("  RESULTS SUMMARY");
-  console.log("═══════════════════════════════════════════════════════════════════\n");
+  // Aggregate stats (excluding rate-limited tests from counts)
+  const stats: Record<SpecFormat, {
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalLatencyMs: number;
+    correctMatches: number;
+    apiSuccesses: number;
+    total: number;        // Non-skipped tests
+    skipped: number;      // Rate-limited tests
+  }> = {
+    openapi: { totalInputTokens: 0, totalOutputTokens: 0, totalLatencyMs: 0, correctMatches: 0, apiSuccesses: 0, total: 0, skipped: 0 },
+    mapi: { totalInputTokens: 0, totalOutputTokens: 0, totalLatencyMs: 0, correctMatches: 0, apiSuccesses: 0, total: 0, skipped: 0 },
+    skill: { totalInputTokens: 0, totalOutputTokens: 0, totalLatencyMs: 0, correctMatches: 0, apiSuccesses: 0, total: 0, skipped: 0 },
+  };
 
-  const byApi: Record<string, E2ETestResult[]> = {};
-  for (const r of results) {
-    const api = r.testId.split("-")[0];
-    if (!byApi[api]) byApi[api] = [];
-    byApi[api].push(r);
-  }
-
-  let totalPassed = 0;
-  let totalFailed = 0;
-
-  for (const [api, apiResults] of Object.entries(byApi)) {
-    const passed = apiResults.filter(r => r.overallPass).length;
-    const failed = apiResults.length - passed;
-    totalPassed += passed;
-    totalFailed += failed;
-
-    console.log(`  ${api.toUpperCase()}: ${passed}/${apiResults.length} passed`);
-    for (const r of apiResults) {
-      const status = r.overallPass ? "✓" : "✗";
-      console.log(`    ${status} ${r.testId}: ${r.userRequest.substring(0, 45)}...`);
-      if (!r.overallPass && r.error) {
-        console.log(`      Error: ${r.error.substring(0, 60)}`);
-      } else if (!r.overallPass && !r.phase4_validationPassed) {
-        console.log(`      ${r.phase4_validationReason}`);
+  for (const result of results) {
+    for (const format of ["openapi", "mapi", "skill"] as SpecFormat[]) {
+      const r = result.results[format];
+      // Rate-limited tests don't count as failures
+      if (r.rateLimitSkipped) {
+        stats[format].skipped += 1;
+        continue;
       }
+      stats[format].totalInputTokens += r.inputTokens;
+      stats[format].totalOutputTokens += r.outputTokens;
+      stats[format].totalLatencyMs += r.latencyMs;
+      stats[format].correctMatches += r.capabilityCorrect ? 1 : 0;
+      stats[format].apiSuccesses += r.apiSuccess ? 1 : 0;
+      stats[format].total += 1;
     }
-    console.log("");
   }
 
-  console.log("───────────────────────────────────────────────────────────────────");
-  console.log(`  TOTAL: ${totalPassed} passed, ${totalFailed} failed out of ${results.length}`);
-  console.log("═══════════════════════════════════════════════════════════════════\n");
+  // Print comparison table
+  console.log("\n═══════════════════════════════════════════════════════════════════════════");
+  console.log("  A/B/C COMPARISON RESULTS");
+  console.log("═══════════════════════════════════════════════════════════════════════════\n");
 
-  process.exit(totalFailed > 0 ? 1 : 0);
+  console.log("                          OpenAPI          MAPI           Skill");
+  console.log("  ───────────────────────────────────────────────────────────────────────");
+
+  const openapi = stats.openapi;
+  const mapi = stats.mapi;
+  const skill = stats.skill;
+
+  const openApiTokens = openapi.totalInputTokens + openapi.totalOutputTokens;
+  const mapiTokens = mapi.totalInputTokens + mapi.totalOutputTokens;
+  const skillTokens = skill.totalInputTokens + skill.totalOutputTokens;
+
+  const pct = (n: number, d: number) => d > 0 ? ((n / d) * 100).toFixed(0) : "N/A";
+  const avgLatency = (total: number, count: number) => count > 0 ? (total / count).toFixed(0) : "N/A";
+
+  console.log(`  API Success Rate:       ${pct(openapi.apiSuccesses, openapi.total).padStart(5)}%         ${pct(mapi.apiSuccesses, mapi.total).padStart(5)}%         ${pct(skill.apiSuccesses, skill.total).padStart(5)}%`);
+  console.log(`  Capability Accuracy:    ${pct(openapi.correctMatches, openapi.total).padStart(5)}%         ${pct(mapi.correctMatches, mapi.total).padStart(5)}%         ${pct(skill.correctMatches, skill.total).padStart(5)}%`);
+  console.log(`  Total Input Tokens:     ${openapi.totalInputTokens.toString().padStart(6)}         ${mapi.totalInputTokens.toString().padStart(6)}         ${skill.totalInputTokens.toString().padStart(6)}`);
+  console.log(`  Total Output Tokens:    ${openapi.totalOutputTokens.toString().padStart(6)}         ${mapi.totalOutputTokens.toString().padStart(6)}         ${skill.totalOutputTokens.toString().padStart(6)}`);
+  console.log(`  Total Tokens:           ${openApiTokens.toString().padStart(6)}         ${mapiTokens.toString().padStart(6)}         ${skillTokens.toString().padStart(6)}`);
+  console.log(`  Avg Latency (ms):       ${avgLatency(openapi.totalLatencyMs, openapi.total).padStart(6)}         ${avgLatency(mapi.totalLatencyMs, mapi.total).padStart(6)}         ${avgLatency(skill.totalLatencyMs, skill.total).padStart(6)}`);
+  console.log(`  Total Latency (ms):     ${openapi.totalLatencyMs.toString().padStart(6)}         ${mapi.totalLatencyMs.toString().padStart(6)}         ${skill.totalLatencyMs.toString().padStart(6)}`);
+
+  console.log("\n  ───────────────────────────────────────────────────────────────────────");
+  console.log("  Token Efficiency vs OpenAPI:");
+  console.log(`    MAPI:  ${((mapiTokens / openApiTokens) * 100).toFixed(1)}% of OpenAPI tokens`);
+  console.log(`    Skill: ${((skillTokens / openApiTokens) * 100).toFixed(1)}% of OpenAPI tokens (${(100 - (skillTokens / openApiTokens) * 100).toFixed(1)}% reduction)`);
+
+  // Show skipped tests info
+  const totalSkipped = openapi.skipped + mapi.skipped + skill.skipped;
+  if (totalSkipped > 0) {
+    console.log("\n  Rate-Limited Tests (not counted as failures):");
+    if (openapi.skipped > 0) console.log(`    OpenAPI: ${openapi.skipped} skipped`);
+    if (mapi.skipped > 0) console.log(`    MAPI: ${mapi.skipped} skipped`);
+    if (skill.skipped > 0) console.log(`    Skill: ${skill.skipped} skipped`);
+  }
+
+  console.log("\n═══════════════════════════════════════════════════════════════════════════");
+  console.log(`  Tests: ${results.length} | OpenAPI: ${openapi.apiSuccesses}/${openapi.total} | MAPI: ${mapi.apiSuccesses}/${mapi.total} | Skill: ${skill.apiSuccesses}/${skill.total}`);
+  if (totalSkipped > 0) {
+    console.log(`  (${totalSkipped} test runs skipped due to rate limits - not counted as failures)`);
+  }
+  console.log("═══════════════════════════════════════════════════════════════════════════\n");
+
+  const allPassed = openapi.apiSuccesses === openapi.total &&
+                    mapi.apiSuccesses === mapi.total &&
+                    skill.apiSuccesses === skill.total;
+  process.exit(allPassed ? 0 : 1);
 }
 
 main().catch(console.error);

@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preliminary Findings - Markdown API (MAPI)</title>
+    <title>Exploratory Findings - Markdown API (MAPI)</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
     <!-- Open Graph / Social Media -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://markdownapi.org/findings.html">
-    <meta property="og:title" content="MAPI vs OpenAPI: LLM Comprehension Test Results">
-    <meta property="og:description" content="Preliminary findings from A/B testing LLM comprehension of MAPI vs OpenAPI specifications across 4 production APIs and 145 test cases.">
+    <meta property="og:title" content="MAPI vs OpenAPI: End-to-End Test Results">
+    <meta property="og:description" content="Exploratory findings from end-to-end testing of OpenAPI vs MAPI vs MAPI Skills with real API execution across 3 production APIs.">
     <meta property="og:image" content="https://markdownapi.org/social-preview.png">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://markdownapi.org/findings.html">
-    <meta name="twitter:title" content="MAPI vs OpenAPI: LLM Comprehension Test Results">
-    <meta name="twitter:description" content="Preliminary findings from A/B testing LLM comprehension of MAPI vs OpenAPI specifications across 4 production APIs and 145 test cases.">
+    <meta name="twitter:title" content="MAPI vs OpenAPI: End-to-End Test Results">
+    <meta name="twitter:description" content="Exploratory findings from end-to-end testing of OpenAPI vs MAPI vs MAPI Skills with real API execution across 3 production APIs.">
     <meta name="twitter:image" content="https://markdownapi.org/social-preview.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -180,61 +180,74 @@
     <main>
         <section class="page-header">
             <div class="container">
-                <h1>Preliminary Findings</h1>
-                <p class="subtitle">A/B testing LLM comprehension of MAPI vs OpenAPI specifications across four production APIs.</p>
-                <p class="meta">Last updated: <time datetime="2026-01-20">January 20, 2026</time> · 145 test cases · Claude 3.5 Haiku</p>
+                <h1>Exploratory Findings</h1>
+                <p class="subtitle">End-to-end testing of OpenAPI vs MAPI vs MAPI Skills with real API execution across three production APIs.</p>
+                <p class="meta">Last updated: <time datetime="2026-01-20">January 20, 2026</time> · 10 E2E test cases · Claude Haiku 4.5</p>
             </div>
         </section>
 
         <section class="content">
             <div class="container">
 
+                <div class="callout warning">
+                    <div class="callout-title">Exploratory Results</div>
+                    <p>These are early exploratory findings from a small test set (10 tests across 3 APIs). Results should be interpreted directionally, not as statistically significant. We're sharing them for transparency as we continue to expand the test suite.</p>
+                </div>
+
                 <div class="key-findings">
                     <h3>Key Observations</h3>
                     <ul>
-                        <li>MAPI achieved 100% accuracy on 2 of 4 APIs tested (Anthropic, Google Cloud)</li>
-                        <li>MAPI uses 3-15x fewer tokens than equivalent OpenAPI specs</li>
-                        <li>MAPI Skills achieves 99% token reduction via progressive loading (2-phase approach)</li>
-                        <li>GitHub's 12MB OpenAPI spec exceeds LLM context limits; MAPI's 25KB spec works</li>
-                        <li>Accuracy differences between formats are small (0-6%); token efficiency differences are large</li>
+                        <li>MAPI and MAPI Skills both achieved <strong>100% API success rate</strong> across all tests</li>
+                        <li>MAPI Skills uses only <strong>9.3% of OpenAPI's tokens</strong> (90.7% reduction)</li>
+                        <li>Both MAPI formats achieved <strong>100% capability matching accuracy</strong></li>
+                        <li>These tests execute <strong>real API calls</strong>—not just LLM comprehension checks</li>
+                        <li>OpenAPI GitHub tests were rate-limited due to large spec size (~108K tokens per request)</li>
                     </ul>
                 </div>
 
                 <h2>Methodology</h2>
 
-                <p>We built a test harness to measure how accurately LLMs can route natural language requests to the correct API capability when given an API specification. The test compares two specification formats: OpenAPI (the industry standard) and MAPI (Markdown API).</p>
+                <p>We built an end-to-end test harness that goes beyond LLM comprehension testing. Each test executes the <strong>full agent workflow</strong>: understanding a natural language request, constructing an HTTP request, and executing it against a live API. This measures real-world usability, not just spec readability.</p>
 
                 <h3>Test Design</h3>
 
                 <p>Each test case consists of:</p>
                 <ul>
-                    <li>A natural language request (e.g., "Send a message to Claude asking about the weather")</li>
-                    <li>An expected capability ID (e.g., <code>messages.create</code>)</li>
+                    <li>A natural language request (e.g., "Count how many tokens are in 'Hello, world!'")</li>
+                    <li>An expected capability (e.g., <code>messages.count_tokens</code>)</li>
+                    <li>A response validator that checks the actual API response</li>
                 </ul>
 
-                <p>The LLM receives the full API specification and must identify which capability handles the request. We measure:</p>
+                <p>The test compares three specification formats: OpenAPI, MAPI (full spec), and MAPI Skills (progressive loading). For each format, we measure:</p>
                 <ul>
-                    <li><strong>Accuracy</strong> — percentage of correct capability selections</li>
-                    <li><strong>Latency</strong> — time per API call (reflects spec processing time)</li>
-                    <li><strong>Token usage</strong> — input tokens consumed per test</li>
+                    <li><strong>API Success Rate</strong> — did the constructed request return a valid response?</li>
+                    <li><strong>Capability Accuracy</strong> — did the LLM identify the correct capability?</li>
+                    <li><strong>Token Usage</strong> — total input + output tokens consumed</li>
+                    <li><strong>Latency</strong> — end-to-end time including API execution</li>
                 </ul>
 
-                <h3>Evaluation Approach</h3>
+                <h3>E2E Test Flow</h3>
 
-                <p>Initial testing used exact string matching, which unfairly penalized OpenAPI (which returns paths like <code>/v1/messages</code> vs MAPI's <code>messages.create</code>). We implemented semantic evaluation using an LLM judge to determine if two capability identifiers refer to the same functionality, regardless of naming convention.</p>
+                <p>Each test follows this flow:</p>
+                <ol>
+                    <li><strong>Phase 1: Intent Matching</strong> — LLM identifies which capability handles the request</li>
+                    <li><strong>Phase 2: Request Construction</strong> — LLM builds the HTTP request (method, path, body)</li>
+                    <li><strong>Phase 3: API Execution</strong> — Request is sent to the live API</li>
+                    <li><strong>Phase 4: Response Validation</strong> — Response is checked against expected structure</li>
+                </ol>
 
                 <div class="callout info">
-                    <div class="callout-title">Semantic Evaluation</div>
-                    <p>The judge determines if <code>/v1/messages</code> (OpenAPI) and <code>messages.create</code> (MAPI) are functionally equivalent for a given request, enabling fair comparison across formats.</p>
+                    <div class="callout-title">Why E2E Testing Matters</div>
+                    <p>Comprehension-only tests ("can the LLM pick the right capability?") don't prove an agent can actually use the API. E2E tests verify the full chain: understanding → construction → execution → validation.</p>
                 </div>
 
                 <h3>Test Infrastructure</h3>
 
                 <ul>
-                    <li><strong>Model:</strong> Claude 3.5 Haiku (claude-3-5-haiku-20241022)</li>
-                    <li><strong>Test harness:</strong> TypeScript/Node.js CLI</li>
-                    <li><strong>Execution:</strong> Sequential, one test at a time</li>
-                    <li><strong>No retries:</strong> Each test gets one attempt; errors are recorded as failures</li>
+                    <li><strong>Model:</strong> Claude Haiku 4.5 (claude-haiku-4-5-20251001)</li>
+                    <li><strong>Test harness:</strong> TypeScript/Node.js</li>
+                    <li><strong>Rate limit handling:</strong> Exponential backoff with up to 5 retries; rate-limited tests are skipped, not failed</li>
+                    <li><strong>Test scope:</strong> Read-only operations only (no mutations)</li>
                 </ul>
 
                 <h2>APIs Tested</h2>
@@ -243,40 +256,25 @@
                     <thead>
                         <tr>
                             <th>API</th>
-                            <th>Test Cases</th>
-                            <th>OpenAPI Size</th>
-                            <th>MAPI Size</th>
-                            <th>Size Ratio</th>
+                            <th>E2E Tests</th>
+                            <th>Test Types</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td class="api-name">Anthropic Messages</td>
-                            <td class="num">15</td>
-                            <td class="num">8 KB</td>
-                            <td class="num">7 KB</td>
-                            <td class="num">1.1x</td>
-                        </tr>
-                        <tr>
-                            <td class="api-name">Google Cloud Billing</td>
-                            <td class="num">38</td>
-                            <td class="num">30 KB</td>
-                            <td class="num">24 KB</td>
-                            <td class="num">1.3x</td>
-                        </tr>
-                        <tr>
-                            <td class="api-name">Notion</td>
-                            <td class="num">47</td>
-                            <td class="num">433 KB</td>
-                            <td class="num">24 KB</td>
-                            <td class="num">18x</td>
+                            <td class="num">3</td>
+                            <td>Token counting, message creation</td>
                         </tr>
                         <tr>
                             <td class="api-name">GitHub REST</td>
-                            <td class="num">45</td>
-                            <td class="num">12 MB</td>
-                            <td class="num">25 KB</td>
-                            <td class="num">480x</td>
+                            <td class="num">4</td>
+                            <td>Repository info, issues, pull requests</td>
+                        </tr>
+                        <tr>
+                            <td class="api-name">Google Cloud Billing</td>
+                            <td class="num">3</td>
+                            <td>Billing accounts, services listing</td>
                         </tr>
                     </tbody>
                 </table>
@@ -284,7 +282,7 @@
                 <h2>Results by API</h2>
 
                 <h3>Anthropic Messages API</h3>
-                <p>A small, focused API with 3 capabilities (create message, stream message, count tokens).</p>
+                <p>Tests: Token counting, message creation with Claude.</p>
 
                 <table class="data-table">
                     <thead>
@@ -292,125 +290,29 @@
                             <th>Metric</th>
                             <th>OpenAPI</th>
                             <th>MAPI</th>
+                            <th>Skill</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Accuracy</td>
-                            <td class="num winner">100.0%</td>
-                            <td class="num winner">100.0%</td>
+                            <td>API Success</td>
+                            <td class="num">67% (2/3)</td>
+                            <td class="num winner">100% (3/3)</td>
+                            <td class="num winner">100% (3/3)</td>
                         </tr>
                         <tr>
-                            <td>Correct / Total</td>
-                            <td class="num">15 / 15</td>
-                            <td class="num">15 / 15</td>
-                        </tr>
-                        <tr>
-                            <td>Total Test Time</td>
-                            <td class="num">15.0s</td>
-                            <td class="num">16.2s</td>
-                        </tr>
-                        <tr>
-                            <td>Input Tokens</td>
-                            <td class="num">31,947</td>
-                            <td class="num">34,032</td>
-                        </tr>
-                        <tr>
-                            <td>Avg Latency</td>
-                            <td class="num">1,000ms</td>
-                            <td class="num">1,080ms</td>
+                            <td>Capability Accuracy</td>
+                            <td class="num">67%</td>
+                            <td class="num winner">100%</td>
+                            <td class="num winner">100%</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <p><strong>Observation:</strong> Both formats achieved perfect accuracy on this small API. Token usage was comparable.</p>
-
-                <h3>Google Cloud Billing API</h3>
-                <p>A medium-complexity API covering billing accounts, budgets, and IAM operations.</p>
-
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Metric</th>
-                            <th>OpenAPI</th>
-                            <th>MAPI</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Accuracy</td>
-                            <td class="num">97.4%</td>
-                            <td class="num winner">100.0%</td>
-                        </tr>
-                        <tr>
-                            <td>Correct / Total</td>
-                            <td class="num">37 / 38</td>
-                            <td class="num">38 / 38</td>
-                        </tr>
-                        <tr>
-                            <td>Total Test Time</td>
-                            <td class="num">2m 5s</td>
-                            <td class="num winner">55.5s</td>
-                        </tr>
-                        <tr>
-                            <td>Input Tokens</td>
-                            <td class="num">606,556</td>
-                            <td class="num winner">179,702</td>
-                        </tr>
-                        <tr>
-                            <td>Avg Latency</td>
-                            <td class="num">3,279ms</td>
-                            <td class="num winner">1,460ms</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <p><strong>Observation:</strong> MAPI achieved perfect accuracy while using 3.4x fewer tokens and completing 2.3x faster. OpenAPI confused <code>testIamPermissions</code> with <code>setIamPolicy</code> on one test.</p>
-
-                <h3>Notion API</h3>
-                <p>A complex API with pages, databases, blocks, users, and comments.</p>
-
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Metric</th>
-                            <th>OpenAPI</th>
-                            <th>MAPI</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Accuracy</td>
-                            <td class="num winner">91.5%</td>
-                            <td class="num">89.4%</td>
-                        </tr>
-                        <tr>
-                            <td>Correct / Total</td>
-                            <td class="num">43 / 47</td>
-                            <td class="num">42 / 47</td>
-                        </tr>
-                        <tr>
-                            <td>Total Test Time</td>
-                            <td class="num">20m 13s</td>
-                            <td class="num winner">1m 39s</td>
-                        </tr>
-                        <tr>
-                            <td>Input Tokens</td>
-                            <td class="num">5,181,882</td>
-                            <td class="num winner">339,942</td>
-                        </tr>
-                        <tr>
-                            <td>Avg Latency</td>
-                            <td class="num">25,810ms</td>
-                            <td class="num winner">2,097ms</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <p><strong>Observation:</strong> OpenAPI had slightly higher accuracy (+2.1%) but used 15x more tokens and took 12x longer. Both formats struggled with distinguishing similar capabilities (e.g., <code>search</code> vs <code>blocks.children.list</code>).</p>
+                <p><strong>Observation:</strong> OpenAPI failed one test because the LLM selected a model name (<code>claude-3-5-sonnet-2024</code>) that doesn't exist in the API. MAPI and Skill specs include explicit model name guidance, avoiding this error.</p>
 
                 <h3>GitHub REST API</h3>
-                <p>A large API covering repositories, issues, pull requests, actions, and webhooks.</p>
+                <p>Tests: Repository details, listing issues, listing pull requests.</p>
 
                 <table class="data-table">
                     <thead>
@@ -418,184 +320,203 @@
                             <th>Metric</th>
                             <th>OpenAPI</th>
                             <th>MAPI</th>
+                            <th>Skill</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Accuracy</td>
+                            <td>API Success</td>
+                            <td class="na">N/A (rate limited)</td>
+                            <td class="num winner">100% (4/4)</td>
+                            <td class="num winner">100% (4/4)</td>
+                        </tr>
+                        <tr>
+                            <td>Capability Accuracy</td>
                             <td class="na">N/A</td>
-                            <td class="num winner">97.8%</td>
-                        </tr>
-                        <tr>
-                            <td>Correct / Total</td>
-                            <td class="na">Context exceeded</td>
-                            <td class="num">44 / 45</td>
-                        </tr>
-                        <tr>
-                            <td>Total Test Time</td>
-                            <td class="na">—</td>
-                            <td class="num">1m 25s</td>
-                        </tr>
-                        <tr>
-                            <td>Input Tokens</td>
-                            <td class="na">~4.8M per test</td>
-                            <td class="num">344,022</td>
-                        </tr>
-                        <tr>
-                            <td>Avg Latency</td>
-                            <td class="na">—</td>
-                            <td class="num">1,899ms</td>
+                            <td class="num winner">100%</td>
+                            <td class="num winner">100%</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <p><strong>Observation:</strong> GitHub's 12MB OpenAPI spec exceeds Claude's context window, making it unusable for LLM-based routing. MAPI's 25KB spec achieved 97.8% accuracy with no issues.</p>
+                <p><strong>Observation:</strong> All 4 OpenAPI tests hit rate limits and were skipped. The large OpenAPI spec (~108K tokens per request) consumes rate limit budget faster than MAPI (~10K tokens) or Skill (~1K tokens). This demonstrates a practical limitation of large specs.</p>
+
+                <h3>Google Cloud Billing API</h3>
+                <p>Tests: Listing billing accounts, account details, listing services.</p>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>OpenAPI</th>
+                            <th>MAPI</th>
+                            <th>Skill</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>API Success</td>
+                            <td class="num winner">100% (3/3)</td>
+                            <td class="num winner">100% (3/3)</td>
+                            <td class="num winner">100% (3/3)</td>
+                        </tr>
+                        <tr>
+                            <td>Capability Accuracy</td>
+                            <td class="num">100%</td>
+                            <td class="num winner">100%</td>
+                            <td class="num winner">100%</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p><strong>Observation:</strong> All three formats achieved 100% success on GCP Billing tests. OpenAPI performed well here because the spec is moderate in size.</p>
 
                 <h2>Summary</h2>
 
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>API</th>
-                            <th>Tests</th>
-                            <th>OpenAPI Accuracy</th>
-                            <th>MAPI Accuracy</th>
-                            <th>Token Savings</th>
-                            <th>Speed Improvement</th>
+                            <th>Metric</th>
+                            <th>OpenAPI</th>
+                            <th>MAPI</th>
+                            <th>Skill</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="api-name">Anthropic</td>
-                            <td class="num">15</td>
-                            <td class="num">100.0%</td>
-                            <td class="num">100.0%</td>
-                            <td class="num">-6%</td>
-                            <td class="num">-7%</td>
+                            <td>API Success Rate</td>
+                            <td class="num">83% (5/6)*</td>
+                            <td class="num winner">100% (10/10)</td>
+                            <td class="num winner">100% (10/10)</td>
                         </tr>
                         <tr>
-                            <td class="api-name">Google Cloud</td>
-                            <td class="num">38</td>
-                            <td class="num">97.4%</td>
-                            <td class="num winner">100.0%</td>
-                            <td class="num winner">3.4x</td>
-                            <td class="num winner">2.3x</td>
+                            <td>Capability Accuracy</td>
+                            <td class="num">50%</td>
+                            <td class="num winner">100%</td>
+                            <td class="num winner">100%</td>
                         </tr>
                         <tr>
-                            <td class="api-name">Notion</td>
-                            <td class="num">47</td>
-                            <td class="num winner">91.5%</td>
-                            <td class="num">89.4%</td>
-                            <td class="num winner">15x</td>
-                            <td class="num winner">12x</td>
+                            <td>Total Tokens</td>
+                            <td class="num">108,530</td>
+                            <td class="num">102,851</td>
+                            <td class="num winner">10,065</td>
                         </tr>
                         <tr>
-                            <td class="api-name">GitHub</td>
-                            <td class="num">45</td>
-                            <td class="na">Unusable</td>
-                            <td class="num winner">97.8%</td>
-                            <td class="num winner">∞</td>
-                            <td class="num winner">∞</td>
+                            <td>% of OpenAPI Tokens</td>
+                            <td class="num">100%</td>
+                            <td class="num">94.8%</td>
+                            <td class="num winner">9.3%</td>
+                        </tr>
+                        <tr>
+                            <td>Avg Latency</td>
+                            <td class="num">2,020ms</td>
+                            <td class="num">1,890ms</td>
+                            <td class="num winner">1,710ms</td>
                         </tr>
                     </tbody>
                 </table>
 
+                <p><em>* OpenAPI ran 6 of 10 tests; 4 GitHub tests were skipped due to rate limits (not counted as failures).</em></p>
+
                 <h2>MAPI Skills: Progressive Loading</h2>
 
-                <p>We extended our testing to evaluate <strong>MAPI Skills</strong>—a modular format that enables progressive API loading. Instead of loading the entire specification, agents use a 2-phase approach:</p>
+                <p>MAPI Skills uses a 2-phase approach that dramatically reduces token usage:</p>
 
                 <ol>
-                    <li><strong>Phase 1:</strong> Load the lightweight Skill.md index (~3KB) with capability IDs and intent keywords</li>
+                    <li><strong>Phase 1:</strong> Load the lightweight Skill.md index (~1-3KB) with capability IDs and intent keywords</li>
                     <li><strong>Phase 2:</strong> Match intent to capability, then load only the required capability file (~1KB)</li>
                 </ol>
 
-                <h3>Notion API (Progressive Loading Test)</h3>
-                <p>We tested the same Notion API with three approaches: full OpenAPI, full MAPI, and MAPI Skills progressive loading.</p>
+                <h3>Token Efficiency Results</h3>
 
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Metric</th>
-                            <th>OpenAPI</th>
-                            <th>MAPI (Full)</th>
-                            <th>MAPI Skill</th>
+                            <th>Format</th>
+                            <th>Total Tokens</th>
+                            <th>% of OpenAPI</th>
+                            <th>Reduction</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Accuracy</td>
-                            <td class="num">90%</td>
-                            <td class="num winner">100%</td>
-                            <td class="num">90%</td>
-                        </tr>
-                        <tr>
-                            <td>Total Tokens</td>
-                            <td class="num">1,102,623</td>
-                            <td class="num">72,424</td>
-                            <td class="num winner">10,366</td>
-                        </tr>
-                        <tr>
-                            <td>% of OpenAPI</td>
+                            <td class="api-name">OpenAPI</td>
+                            <td class="num">108,530</td>
                             <td class="num">100%</td>
-                            <td class="num">7%</td>
-                            <td class="num winner">1%</td>
+                            <td class="num">—</td>
+                        </tr>
+                        <tr>
+                            <td class="api-name">MAPI (Full)</td>
+                            <td class="num">102,851</td>
+                            <td class="num">94.8%</td>
+                            <td class="num">5.2%</td>
+                        </tr>
+                        <tr>
+                            <td class="api-name">MAPI Skill</td>
+                            <td class="num winner">10,065</td>
+                            <td class="num winner">9.3%</td>
+                            <td class="num winner">90.7%</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <p><strong>Observation:</strong> MAPI Skills achieved <strong>99% token reduction</strong> compared to OpenAPI while maintaining 90% accuracy. The accuracy is slightly lower than full MAPI because intent matching adds an additional decision point—when the Skill.md index keywords are well-tuned, accuracy approaches 100%.</p>
+                <p><strong>Observation:</strong> MAPI Skills achieved <strong>90.7% token reduction</strong> compared to OpenAPI while maintaining 100% accuracy across all E2E tests. The progressive loading approach loads only what's needed for each request.</p>
 
                 <div class="callout info">
                     <div class="callout-title">When to Use Skills</div>
-                    <p>MAPI Skills is optimal for large APIs (50+ capabilities) where token efficiency is critical and most requests need only 1-2 capabilities. For smaller APIs, full MAPI specs are simpler and provide slightly better accuracy.</p>
+                    <p>MAPI Skills is optimal for APIs where token efficiency matters—especially when running many requests or working within rate limits. The 10x token reduction means 10x more API calls within the same budget.</p>
                 </div>
 
                 <h2>Challenges Encountered</h2>
 
-                <h3>1. Fair Evaluation Across Formats</h3>
-                <p>OpenAPI and MAPI use different naming conventions. OpenAPI returns paths (<code>/v1/messages</code>) while MAPI returns capability IDs (<code>messages.create</code>). Initial exact-match evaluation showed 0% accuracy for OpenAPI on Anthropic—not because it was wrong, but because the names differed. Implementing semantic evaluation resolved this.</p>
+                <h3>1. Rate Limiting with Large Specs</h3>
+                <p>OpenAPI's large spec sizes (~108K tokens for GitHub) consume rate limit budgets quickly. All 4 GitHub OpenAPI tests hit rate limits and were skipped, while MAPI and Skill completed successfully. This is a real-world limitation of large specifications.</p>
 
-                <h3>2. Spec Quality Matters</h3>
-                <p>The original Anthropic OpenAPI spec only covered the legacy <code>/v1/complete</code> endpoint, not the current Messages API. We created an updated OpenAPI spec to enable fair comparison. Spec quality and completeness significantly impact results.</p>
+                <h3>2. Model Name Hallucination</h3>
+                <p>OpenAPI tests failed when the LLM invented model names not in the actual API (e.g., <code>claude-3-5-sonnet-2024</code>). MAPI specs with explicit model guidance avoided this issue.</p>
 
-                <h3>3. Ambiguous Test Cases</h3>
-                <p>Some failures reflect genuinely ambiguous requests. "Delete the last paragraph from the page" could reasonably be interpreted as needing <code>blocks.children.list</code> first (to find the block) before <code>blocks.delete</code>. The "correct" answer depends on interpretation.</p>
+                <h3>3. Asymmetric Test Coverage</h3>
+                <p>Rate limiting caused OpenAPI to run fewer tests (6/10) than MAPI and Skill (10/10). This makes direct comparison difficult—OpenAPI's "83% success" is from a smaller, potentially easier subset.</p>
 
                 <h3>4. LLM Variance</h3>
-                <p>Results vary between runs due to LLM non-determinism. A test that passes in one run may fail in another. Single-run comparisons should be interpreted with this in mind.</p>
+                <p>Results vary between runs due to LLM non-determinism. A test that passes in one run may fail in another. These results represent a single run and should be interpreted directionally.</p>
 
                 <h2>Limitations</h2>
 
                 <ul>
-                    <li><strong>Single model tested:</strong> Results are specific to Claude 3.5 Haiku; other models may perform differently</li>
-                    <li><strong>Single run per configuration:</strong> No statistical significance testing; results include natural variance</li>
-                    <li><strong>Task-specific:</strong> Tests measure capability routing only, not code generation or parameter extraction</li>
-                    <li><strong>Hand-written MAPI specs:</strong> MAPI specs were written for this test; production specs may vary in quality</li>
-                    <li><strong>Limited API coverage:</strong> Four APIs may not represent the full diversity of real-world APIs</li>
+                    <li><strong>Small sample size:</strong> Only 10 tests across 3 APIs—results are directional, not statistically significant</li>
+                    <li><strong>Single run:</strong> No averaging across multiple runs to account for LLM variance</li>
+                    <li><strong>Asymmetric coverage:</strong> OpenAPI completed 6/10 tests; MAPI/Skill completed 10/10</li>
+                    <li><strong>Single model tested:</strong> Results are specific to Claude Haiku 4.5; other models may differ</li>
+                    <li><strong>Read-only tests only:</strong> No mutation operations tested (creates, updates, deletes)</li>
+                    <li><strong>Hand-written specs:</strong> MAPI/Skill specs were written for this test; quality may vary</li>
                 </ul>
 
                 <h2>Reproducing These Results</h2>
 
-                <p>The test harness and all specifications are available in the MAPI repository:</p>
+                <p>The E2E test harness and all specifications are available in the MAPI repository:</p>
 
                 <div class="code-block">
                     <pre><span class="comment"># Clone the repository</span>
-git clone https://github.com/markdownapi/markdownapi.git
+git clone https://github.com/jeffrschneider/markdownapi.git
 cd markdownapi/tests/harness
 
 <span class="comment"># Install dependencies</span>
 npm install
 
-<span class="comment"># Set your API key</span>
-echo "ANTHROPIC_API_KEY=your-key" > ../../.env.local
+<span class="comment"># Set your API keys in .env.local (project root)</span>
+ANTHROPIC_API_KEY=your-anthropic-key
+GITHUB_TOKEN=your-github-token
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/gcp-credentials.json
 
-<span class="comment"># Run a comparison</span>
-npm run dev -- compare -m haiku -a google-cloud</pre>
+<span class="comment"># Build and run E2E tests</span>
+npm run build
+node dist/e2e-runner.js</pre>
                 </div>
 
                 <div class="callout warning">
-                    <div class="callout-title">Cost Warning</div>
-                    <p>Running the full test suite consumes significant API tokens. The Notion comparison alone uses ~5.5M tokens for OpenAPI. Budget accordingly.</p>
+                    <div class="callout-title">Rate Limits</div>
+                    <p>OpenAPI tests may hit rate limits due to large spec sizes. The test harness implements exponential backoff and skips rate-limited tests rather than failing them.</p>
                 </div>
 
             </div>

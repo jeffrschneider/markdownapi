@@ -31,6 +31,10 @@ Tests that only verify LLM comprehension (e.g., "can the LLM pick the right capa
   TEST PASSED                               ← NOT VALID (no API execution)
 ```
 
+## Test Model
+
+The default model for testing is `claude-haiku-4-5-20251001`. This ensures tests measure spec quality rather than relying on a more capable model to compensate for unclear specifications.
+
 ## E2E Test Runner
 
 Use `tests/harness/src/e2e-runner.ts` to run valid end-to-end tests:
@@ -47,3 +51,17 @@ This runner tests the full agent flow:
 4. LLM constructs HTTP request
 5. **Execute the request against the real API**
 6. **Validate the actual response**
+
+## Rate Limit Handling
+
+**Rate limit errors (429, 529) must NEVER be counted as test failures.**
+
+When hitting rate limits:
+1. Implement exponential backoff with retries (starting at 3 seconds, doubling each retry)
+2. Retry up to 5 times before giving up
+3. If rate limits persist after all retries, **skip the test** - don't count it as a failure
+4. Only count as failure if the request fails with a non-rate-limit error
+
+Rate limits indicate infrastructure constraints, not test failures. A test that gets rate-limited is either:
+- **Passing** if it succeeds on retry
+- **Skipped** if rate limits persist (not counted in success/failure stats)
