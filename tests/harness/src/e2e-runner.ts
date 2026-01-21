@@ -1,13 +1,15 @@
 /**
  * End-to-End Skill Test Runner
  *
- * Tests the FULL agent flow:
+ * Tests the FULL agent flow with REAL API execution:
  * 1. Load Skill.md index
  * 2. LLM matches intent → capability
  * 3. Load capability + dependencies
  * 4. LLM constructs API request
- * 5. Execute the request
+ * 5. Execute the request against live APIs
  * 6. Validate the response
+ *
+ * Only includes READ-ONLY tests that don't modify data.
  */
 
 import { config } from "dotenv";
@@ -93,8 +95,11 @@ const API_CONFIGS: Record<ApiType, {
   },
 };
 
-// Test cases that actually call real APIs
-const TEST_CASES: E2ETestCase[] = [
+// =============================================================================
+// TEST CASES - READ-ONLY ONLY
+// =============================================================================
+
+const ANTHROPIC_TESTS: E2ETestCase[] = [
   {
     id: "anthropic-001",
     userRequest: "Count how many tokens are in the message 'Hello, world!'",
@@ -102,13 +107,31 @@ const TEST_CASES: E2ETestCase[] = [
     expectedCapability: "messages.count_tokens",
     validateResponse: (resp) => {
       if (resp.input_tokens && typeof resp.input_tokens === "number") {
-        return { pass: true, reason: `Got token count: ${resp.input_tokens}` };
+        return { pass: true, reason: `Token count: ${resp.input_tokens}` };
       }
-      return { pass: false, reason: "Response missing input_tokens field" };
+      if (resp.error) {
+        return { pass: false, reason: `API error: ${resp.error.message}` };
+      }
+      return { pass: false, reason: "Missing input_tokens field" };
     },
   },
   {
     id: "anthropic-002",
+    userRequest: "Count tokens in: 'The quick brown fox jumps over the lazy dog'",
+    api: "anthropic",
+    expectedCapability: "messages.count_tokens",
+    validateResponse: (resp) => {
+      if (resp.input_tokens && typeof resp.input_tokens === "number") {
+        return { pass: true, reason: `Token count: ${resp.input_tokens}` };
+      }
+      if (resp.error) {
+        return { pass: false, reason: `API error: ${resp.error.message}` };
+      }
+      return { pass: false, reason: "Missing input_tokens field" };
+    },
+  },
+  {
+    id: "anthropic-003",
     userRequest: "Send a message to Claude asking what 2+2 equals. Use claude-3-5-haiku model with max 50 tokens.",
     api: "anthropic",
     expectedCapability: "messages.create",
@@ -116,13 +139,54 @@ const TEST_CASES: E2ETestCase[] = [
       if (resp.content && resp.content[0]?.text) {
         const text = resp.content[0].text.toLowerCase();
         if (text.includes("4") || text.includes("four")) {
-          return { pass: true, reason: `Claude answered: ${resp.content[0].text}` };
+          return { pass: true, reason: `Claude answered: ${resp.content[0].text.substring(0, 50)}` };
         }
-        return { pass: false, reason: `Unexpected answer: ${resp.content[0].text}` };
+        return { pass: false, reason: `Unexpected answer: ${resp.content[0].text.substring(0, 50)}` };
       }
-      return { pass: false, reason: "Response missing content" };
+      if (resp.error) {
+        return { pass: false, reason: `API error: ${resp.error.message}` };
+      }
+      return { pass: false, reason: "Missing content" };
     },
   },
+  {
+    id: "anthropic-004",
+    userRequest: "Ask Claude what the capital of France is. Use claude-3-5-haiku with max 100 tokens.",
+    api: "anthropic",
+    expectedCapability: "messages.create",
+    validateResponse: (resp) => {
+      if (resp.content && resp.content[0]?.text) {
+        const text = resp.content[0].text.toLowerCase();
+        if (text.includes("paris")) {
+          return { pass: true, reason: `Claude answered: ${resp.content[0].text.substring(0, 50)}` };
+        }
+        return { pass: false, reason: `Unexpected answer: ${resp.content[0].text.substring(0, 50)}` };
+      }
+      if (resp.error) {
+        return { pass: false, reason: `API error: ${resp.error.message}` };
+      }
+      return { pass: false, reason: "Missing content" };
+    },
+  },
+  {
+    id: "anthropic-005",
+    userRequest: "Ask Claude to write a one-line haiku about code. Use claude-3-5-haiku with max 100 tokens.",
+    api: "anthropic",
+    expectedCapability: "messages.create",
+    validateResponse: (resp) => {
+      if (resp.content && resp.content[0]?.text && resp.content[0].text.length > 5) {
+        return { pass: true, reason: `Claude wrote: ${resp.content[0].text.substring(0, 60)}...` };
+      }
+      if (resp.error) {
+        return { pass: false, reason: `API error: ${resp.error.message}` };
+      }
+      return { pass: false, reason: "Missing or empty content" };
+    },
+  },
+];
+
+const GITHUB_TESTS: E2ETestCase[] = [
+  // repos.get tests
   {
     id: "github-001",
     userRequest: "Get details about the repository jeffrschneider/markdownapi",
@@ -130,16 +194,47 @@ const TEST_CASES: E2ETestCase[] = [
     expectedCapability: "repos.get",
     validateResponse: (resp) => {
       if (resp.full_name === "jeffrschneider/markdownapi") {
+        return { pass: true, reason: `Got repo: ${resp.full_name}` };
+      }
+      if (resp.message) {
+        return { pass: false, reason: `API error: ${resp.message}` };
+      }
+      return { pass: false, reason: "Unexpected response" };
+    },
+  },
+  {
+    id: "github-002",
+    userRequest: "Get information about the facebook/react repository",
+    api: "github",
+    expectedCapability: "repos.get",
+    validateResponse: (resp) => {
+      if (resp.full_name === "facebook/react") {
         return { pass: true, reason: `Got repo: ${resp.full_name}, stars: ${resp.stargazers_count}` };
       }
       if (resp.message) {
         return { pass: false, reason: `API error: ${resp.message}` };
       }
-      return { pass: false, reason: "Unexpected response structure" };
+      return { pass: false, reason: "Unexpected response" };
     },
   },
   {
-    id: "github-002",
+    id: "github-003",
+    userRequest: "Show me details of the microsoft/vscode repository",
+    api: "github",
+    expectedCapability: "repos.get",
+    validateResponse: (resp) => {
+      if (resp.full_name === "microsoft/vscode") {
+        return { pass: true, reason: `Got repo: ${resp.full_name}` };
+      }
+      if (resp.message) {
+        return { pass: false, reason: `API error: ${resp.message}` };
+      }
+      return { pass: false, reason: "Unexpected response" };
+    },
+  },
+  // issues.list tests
+  {
+    id: "github-004",
     userRequest: "List the open issues on jeffrschneider/markdownapi",
     api: "github",
     expectedCapability: "issues.list",
@@ -150,9 +245,59 @@ const TEST_CASES: E2ETestCase[] = [
       if (resp.message) {
         return { pass: false, reason: `API error: ${resp.message}` };
       }
-      return { pass: false, reason: "Expected array of issues" };
+      return { pass: false, reason: "Expected array" };
     },
   },
+  {
+    id: "github-005",
+    userRequest: "List open issues in the facebook/react repository",
+    api: "github",
+    expectedCapability: "issues.list",
+    validateResponse: (resp) => {
+      if (Array.isArray(resp)) {
+        return { pass: true, reason: `Got ${resp.length} issues` };
+      }
+      if (resp.message) {
+        return { pass: false, reason: `API error: ${resp.message}` };
+      }
+      return { pass: false, reason: "Expected array" };
+    },
+  },
+  // pulls.list tests
+  {
+    id: "github-006",
+    userRequest: "List all open pull requests in facebook/react",
+    api: "github",
+    expectedCapability: "pulls.list",
+    validateResponse: (resp) => {
+      if (Array.isArray(resp)) {
+        return { pass: true, reason: `Got ${resp.length} PRs` };
+      }
+      if (resp.message) {
+        return { pass: false, reason: `API error: ${resp.message}` };
+      }
+      return { pass: false, reason: "Expected array" };
+    },
+  },
+  {
+    id: "github-007",
+    userRequest: "Show me PRs in kubernetes/kubernetes",
+    api: "github",
+    expectedCapability: "pulls.list",
+    validateResponse: (resp) => {
+      if (Array.isArray(resp)) {
+        return { pass: true, reason: `Got ${resp.length} PRs` };
+      }
+      if (resp.message) {
+        return { pass: false, reason: `API error: ${resp.message}` };
+      }
+      return { pass: false, reason: "Expected array" };
+    },
+  },
+];
+
+const GCP_BILLING_TESTS: E2ETestCase[] = [
+  // billingAccounts.list tests
   {
     id: "gcp-001",
     userRequest: "List all my billing accounts",
@@ -170,12 +315,28 @@ const TEST_CASES: E2ETestCase[] = [
   },
   {
     id: "gcp-002",
+    userRequest: "Show me the billing accounts I have access to",
+    api: "gcp-billing",
+    expectedCapability: "billingAccounts.list",
+    validateResponse: (resp) => {
+      if (resp.billingAccounts && Array.isArray(resp.billingAccounts)) {
+        return { pass: true, reason: `Got ${resp.billingAccounts.length} billing account(s)` };
+      }
+      if (resp.error) {
+        return { pass: false, reason: `API error: ${resp.error.message}` };
+      }
+      return { pass: false, reason: "Expected billingAccounts array" };
+    },
+  },
+  // billingAccounts.get tests
+  {
+    id: "gcp-003",
     userRequest: "Get details for billing account 00F713-8B305A-24E5FA",
     api: "gcp-billing",
     expectedCapability: "billingAccounts.get",
     validateResponse: (resp) => {
       if (resp.name && resp.displayName) {
-        return { pass: true, reason: `Got billing account: ${resp.displayName}` };
+        return { pass: true, reason: `Got: ${resp.displayName}` };
       }
       if (resp.error) {
         return { pass: false, reason: `API error: ${resp.error.message}` };
@@ -183,7 +344,49 @@ const TEST_CASES: E2ETestCase[] = [
       return { pass: false, reason: "Expected billing account details" };
     },
   },
+  // services.list tests
+  {
+    id: "gcp-004",
+    userRequest: "List all Google Cloud services available",
+    api: "gcp-billing",
+    expectedCapability: "services.list",
+    validateResponse: (resp) => {
+      if (resp.services && Array.isArray(resp.services)) {
+        return { pass: true, reason: `Got ${resp.services.length} services` };
+      }
+      if (resp.error) {
+        return { pass: false, reason: `API error: ${resp.error.message}` };
+      }
+      return { pass: false, reason: "Expected services array" };
+    },
+  },
+  {
+    id: "gcp-005",
+    userRequest: "Show me the catalog of GCP services",
+    api: "gcp-billing",
+    expectedCapability: "services.list",
+    validateResponse: (resp) => {
+      if (resp.services && Array.isArray(resp.services)) {
+        return { pass: true, reason: `Got ${resp.services.length} services` };
+      }
+      if (resp.error) {
+        return { pass: false, reason: `API error: ${resp.error.message}` };
+      }
+      return { pass: false, reason: "Expected services array" };
+    },
+  },
 ];
+
+// Combine all tests
+const ALL_TESTS: E2ETestCase[] = [
+  ...ANTHROPIC_TESTS,
+  ...GITHUB_TESTS,
+  ...GCP_BILLING_TESTS,
+];
+
+// =============================================================================
+// SKILL LOADING FUNCTIONS
+// =============================================================================
 
 async function loadSkillIndex(api: ApiType): Promise<string> {
   const cfg = API_CONFIGS[api];
@@ -212,6 +415,10 @@ async function loadCommon(api: ApiType, filename: string): Promise<string> {
 
   return fs.readFileSync(commonPath, "utf-8");
 }
+
+// =============================================================================
+// TEST PHASES
+// =============================================================================
 
 async function phase1_matchIntent(
   skillIndex: string,
@@ -306,6 +513,10 @@ async function phase3_executeRequest(
   return response.json();
 }
 
+// =============================================================================
+// TEST RUNNER
+// =============================================================================
+
 async function runE2ETest(testCase: E2ETestCase): Promise<E2ETestResult> {
   const result: E2ETestResult = {
     testId: testCase.id,
@@ -346,13 +557,13 @@ async function runE2ETest(testCase: E2ETestCase): Promise<E2ETestResult> {
     );
     result.phase2_requestConstructed = request;
     console.log(`  Request: ${request.method} ${request.path}`);
-    if (request.body) console.log(`  Body: ${JSON.stringify(request.body).substring(0, 150)}...`);
+    if (request.body) console.log(`  Body: ${JSON.stringify(request.body).substring(0, 100)}...`);
 
     // Phase 3: Execute the request
     console.log(`[${testCase.id}] Phase 3: Executing request...`);
     const response = await phase3_executeRequest(testCase.api, request);
     result.phase3_responseReceived = response;
-    console.log(`  Response: ${JSON.stringify(response).substring(0, 200)}...`);
+    console.log(`  Response: ${JSON.stringify(response).substring(0, 150)}...`);
 
     // Phase 4: Validate the response
     console.log(`[${testCase.id}] Phase 4: Validating response...`);
@@ -373,45 +584,74 @@ async function runE2ETest(testCase: E2ETestCase): Promise<E2ETestResult> {
 }
 
 async function main() {
-  console.log("═══════════════════════════════════════════════════════════");
+  const args = process.argv.slice(2);
+  const apiFilter = args.find(a => a.startsWith("--api="))?.split("=")[1] as ApiType | undefined;
+
+  console.log("═══════════════════════════════════════════════════════════════════");
   console.log("  End-to-End Skill Test Runner");
-  console.log("═══════════════════════════════════════════════════════════");
-  console.log("\nThis tests the FULL agent flow:");
+  console.log("═══════════════════════════════════════════════════════════════════");
+  console.log("\nThis tests the FULL agent flow with REAL API execution:");
   console.log("  1. Load Skill.md index");
   console.log("  2. LLM matches intent → capability");
   console.log("  3. Load capability, LLM constructs request");
   console.log("  4. Execute REAL API call");
   console.log("  5. Validate response\n");
 
+  // Filter tests if API specified
+  let testsToRun = ALL_TESTS;
+  if (apiFilter) {
+    testsToRun = ALL_TESTS.filter(t => t.api === apiFilter);
+    console.log(`Filtering to ${apiFilter} tests only (${testsToRun.length} tests)\n`);
+  } else {
+    console.log(`Running all ${ALL_TESTS.length} tests\n`);
+  }
+
   const results: E2ETestResult[] = [];
 
-  for (const testCase of TEST_CASES) {
+  for (const testCase of testsToRun) {
     const result = await runE2ETest(testCase);
     results.push(result);
   }
 
-  // Summary
-  console.log("\n═══════════════════════════════════════════════════════════");
+  // Summary by API
+  console.log("\n═══════════════════════════════════════════════════════════════════");
   console.log("  RESULTS SUMMARY");
-  console.log("═══════════════════════════════════════════════════════════\n");
+  console.log("═══════════════════════════════════════════════════════════════════\n");
 
-  let passed = 0;
-  let failed = 0;
-
+  const byApi: Record<string, E2ETestResult[]> = {};
   for (const r of results) {
-    const status = r.overallPass ? "✓ PASS" : "✗ FAIL";
-    console.log(`${status}  ${r.testId}: ${r.userRequest.substring(0, 50)}...`);
-    if (!r.overallPass) {
-      if (r.error) console.log(`        Error: ${r.error}`);
-      if (!r.phase1_correct) console.log(`        Phase 1: Matched ${r.phase1_matchedCapability}, expected ${TEST_CASES.find(t => t.id === r.testId)?.expectedCapability}`);
-      if (!r.phase4_validationPassed) console.log(`        Phase 4: ${r.phase4_validationReason}`);
-    }
-    r.overallPass ? passed++ : failed++;
+    const api = r.testId.split("-")[0];
+    if (!byApi[api]) byApi[api] = [];
+    byApi[api].push(r);
   }
 
-  console.log(`\n  Total: ${passed} passed, ${failed} failed out of ${results.length}`);
+  let totalPassed = 0;
+  let totalFailed = 0;
 
-  process.exit(failed > 0 ? 1 : 0);
+  for (const [api, apiResults] of Object.entries(byApi)) {
+    const passed = apiResults.filter(r => r.overallPass).length;
+    const failed = apiResults.length - passed;
+    totalPassed += passed;
+    totalFailed += failed;
+
+    console.log(`  ${api.toUpperCase()}: ${passed}/${apiResults.length} passed`);
+    for (const r of apiResults) {
+      const status = r.overallPass ? "✓" : "✗";
+      console.log(`    ${status} ${r.testId}: ${r.userRequest.substring(0, 45)}...`);
+      if (!r.overallPass && r.error) {
+        console.log(`      Error: ${r.error.substring(0, 60)}`);
+      } else if (!r.overallPass && !r.phase4_validationPassed) {
+        console.log(`      ${r.phase4_validationReason}`);
+      }
+    }
+    console.log("");
+  }
+
+  console.log("───────────────────────────────────────────────────────────────────");
+  console.log(`  TOTAL: ${totalPassed} passed, ${totalFailed} failed out of ${results.length}`);
+  console.log("═══════════════════════════════════════════════════════════════════\n");
+
+  process.exit(totalFailed > 0 ? 1 : 0);
 }
 
 main().catch(console.error);
